@@ -12,7 +12,7 @@ contains
         call LegendreGaussLobattoNodesandWeights(N,x,w)
         call DifferentiationsmatrixBerechnen(x,Dval,N+1)
         Sval=0.0_RP
-        lambda=sqrt(lame/rho)
+
         Sval(1,1)=1.0_RP/w(1)
         Sval(n+1,n+1)=-1.0_RP/w(n+1)
         dx=1.0_RP/real(nq,kind=RP)
@@ -25,10 +25,10 @@ contains
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !Operator aus Semidiskreterdarstellung
-    function R(u,t,N,NQ,D,S) result(solution)
+    function R(u,t,N,NQ,D) result(solution)
         implicit none
         integer, intent(in) :: n,NQ
-        real(kind=RP), dimension(1:NQ*NQ,1:n+1,1:(N+1),1:3)                 :: solution
+        real(kind=RP), dimension(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution
         real(kind=RP), intent(in)                                           :: t
         real(kind=RP), intent(in), dimension(1:nq*nq,1:(n+1),1:n+1,1:3)     :: u
         REAL(KIND=RP),intent(in),dimension(:,:)                             :: D
@@ -37,37 +37,53 @@ contains
 
     end function
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine computeL(u,dir,result)
+    subroutine computeL(u,D,dir,result)
         implicit none
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),intent(in)           ::u
         INTEGER,intent(in)                                      ::dir
+        REAL(KIND=RP),DIMENSION(:,:),intent(in)                 ::D
         !u dimensions:(nummer zelle x,zelle y,zelle z,x,y,z,variable)
         REAL(KIND=RP),dimension(:,:,:,:,:,:,:),allocatable,intent(out)::result
         !local Variables
-        INTEGER
+        INTEGER                                             ::var,k,j,i,o,l,m,n,nq
+        REAL(KIND=RP),dimension(:,:),allocatable                        ::Fsharp
+        nq=size(u,dim=1)
+        n=size(u,dim=4)
         select case(dir)
-        case(1)                                                          ::i,j,k,m
-        do m=1,nq**3
-            do i=1,n+1
-                do j=1,n+1
-                    do k=1,n+1
+            case(1)
+                do var=1,5
+                do k=1,n+1
+                    do j=1,n+1
+                        do i=1,n+1
+                            do o=1,nq
+                                do l=1,nq
+                                    do m=1,nq
+                                        call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,'ST',Fsharp)
+                                        result(m,l,o,i,j,k,var)=2*dot_product(D(i,:),Fsharp(:,var))
+                                    enddo
+                                enddo
+                            enddo
+                        enddo
+                    enddo
+                enddo
+                enddo
 
-
-
+        end select
+    end subroutine
     subroutine calculateEuler3DFlux(u,dir,result)
     !Subroutine gets the values of u and return the flux for the spcified direction
     !dir=1,2,3 stands for x,y,z direction
         implicit none
-        REAL(KIND=RP),dimension(:,:,:,5),intent(in)     :: u
+        REAL(KIND=RP),dimension(:,:,:,:),intent(in)     :: u
         INTEGER                         ,intent(in)     :: dir
         REAL(KIND=RP),dimension(:,:,:,:),intent(out),allocatable    :: result
         !local variables beyond here
         INTEGER                                         :: n
-        REAL(KIND=RP),dimension(:,:,:,:),allocatable    ::p
+        REAL(KIND=RP),dimension(:,:,:),allocatable    ::p
         n=size(u,dim=1)
         ALLOCATE(result(1:n+1,1:n+1,1:n+1,5))
-        ALLOCATE(p(1:n+1,1:n+1,1:n+1,5))
-        p=(gamma-1.0_RP)*(u(:,:,:,5)-0.5_RP*(u(:,:,:,2)**2+u(:,:,:,3)**2+u(:,:,:,4)**2)/u(:,:,:,1)
+        ALLOCATE(p(1:n+1,1:n+1,1:n+1))
+        p=(gamma-1.0_RP)*(u(:,:,:,5)-0.5_RP*(u(:,:,:,2)**2+u(:,:,:,3)**2+u(:,:,:,4)**2)/u(:,:,:,1))
         SELECT CASE (dir)
             CASE(1)
                 result(:,:,:,1)=u(:,:,:,2)
@@ -96,19 +112,19 @@ contains
     !Subroutine computes the Volume flux Fsharp
         implicit none
         REAL(KIND=RP),intent(in) ,dimension(5)                       ::u1
-        REAL(KIND=RP),intent(in),dimension(:,5)           ::u2
+        REAL(KIND=RP),intent(in),dimension(:,:)           ::u2
         CHARACTER(len=*),intent(in)                     ::whichflux
         INTEGER         ,intent(in)                     ::dir
-        REAL(KIND=RP),intent(out),dimension(:),allocatable   :: result
+        REAL(KIND=RP),intent(out),dimension(:,:),allocatable   :: result
         !local variables go beyond here
         INTEGER                                         ::n
         REAL(KIND=RP),dimension(:),allocatable                   ::p2
         REAL(KIND=RP)                               ::p1
         n=size(u2,dim=1)
-        allocate(result(n))
+        allocate(result(n,5))
+        p1=(gamma-1.0_RP)*(u1(5)-0.5_RP*(u1(2)**2+u1(3)**2+u1(4)**2)/u1(1))
+        p2=(gamma-1.0_RP)*(u2(:,5)-0.5_RP*(u2(:,2)**2+u2(:,3)**2+u2(:,4)**2)/u2(:,1))
         SELECT CASE(whichflux)
-        p1=(gamma-1.0_RP)*(u1(5)-0.5_RP*(u1(2)**2+u1(3)**2+u1(4)**2)/u1(1)
-        p2=(gamma-1.0_RP)*(u2(:,5)-0.5_RP*(u2(:,2)**2+u2(:,3)**2+u2(:,4)**2)/u2(:,1)
             CASE('ST')
                 SELECT CASE(dir)
                     CASE(1)
@@ -131,28 +147,29 @@ contains
                         result(:,5)=(u1(4)/u1(1)*(u1(5)+p1)+u2(:,3)/u2(:,1)*(u2(:,5)+p2))*0.5_RP
                 end SELECT
         END SELECT
-    subroutine Initialcondition(x,n,nq,u,x2,y)
-        implicit none
-
     end subroutine
+   !#subroutine Initialcondition(x,n,nq,u,x2,y)
+        !implicit none
+
+    !end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine computeLocalLaxFriedrich(uL,uR)
-        IMPLICIT NONE
-        REAL(KIND=RP)
+    !subroutine computeLocalLaxFriedrich(uL,uR)
+        !IMPLICIT NONE
+    !end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine RungeKutta5explizit(ustar,t,nq,n,numvar,dt,Dval,Sval)
         IMPLICIT NONE
         !ustar=bekannte Werte
         INTEGER,INTENT(IN)                                          :: numvar,n,nq
         REAL(KIND=RP),intent(in),dimension(:,:)         :: Dval,Sval
-        REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq*nq,1:numvar,1:(n+1),1:n+1,1:n+1)  :: ustar
+        REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:(n+1),1:n+1,1:n+1,1:numvar)  :: ustar
         REAL(KIND=RP),INTENT(IN)                                    :: t
         !local
-        REAL(KIND=RP),DIMENSION(1:nq*nq,1:numvar,1:(n+1),1:n+1,1:n+1)     :: g
+        REAL(KIND=RP),DIMENSION(1:nq,1:nq,1:nq,1:(n+1),1:n+1,1:n+1,1:numvar)    :: g
         INTEGER                                                     :: step=1
         REAL(KIND=RP),DIMENSION(5)                                  :: a,b,c
         REAL(KIND=RP),INTENT(IN)                                    :: dt
-        g=R(ustar,t,n,nq,Dval,Sval)
+        g=R(ustar,t,n,nq,Dval)
         a(1)=0.0_RP
         b(1)=0.0_RP
         c(1)=1432997174477.0_RP/9575080441755.0_RP
@@ -169,7 +186,7 @@ contains
         b(5)=2802321613138.0_RP/2924317926251.0_RP
         c(5)=2277821191437.0_RP/14882151754819.0_RP
         do step=1,5
-            g=a(step)*g+R(ustar,t+b(step)*dt,n,nq,Dval,Sval)
+            g=a(step)*g+R(ustar,t+b(step)*dt,n,nq,Dval)
             ustar=ustar+c(step)*dt*g
         enddo
     end subroutine
