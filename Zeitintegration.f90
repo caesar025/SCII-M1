@@ -3,18 +3,14 @@ module Zeitintegration
     REAL(KIND=RP),DIMENSION(:),allocatable      ::x,w,xmit,xges
     REAL(KIND=RP)                               ::gk=9.812_RP,dx,gamma=1.4_RP
 contains
-    subroutine Vorbereiten(n,nq,Dval,Sval)
+    subroutine Vorbereiten(n,nq,Dval)
         implicit none
         INTEGER,INTENT(IN)      ::n,nq
         INTEGER                 ::j,i
-        REAL(KIND=RP),DIMENSION(1:n+1,1:n+1),INTENT(out)    :: Dval,Sval
+        REAL(KIND=RP),DIMENSION(1:n+1,1:n+1),INTENT(out)    :: Dval
         allocate(x(1:n+1),w(1:n+1),xges(1:nq*(n+1)),xmit(1:nq+1))
         call LegendreGaussLobattoNodesandWeights(N,x,w)
         call DifferentiationsmatrixBerechnen(x,Dval,N+1)
-        Sval=0.0_RP
-
-        Sval(1,1)=1.0_RP/w(1)
-        Sval(n+1,n+1)=-1.0_RP/w(n+1)
         dx=1.0_RP/real(nq,kind=RP)
         call linspace(dx/2.0_RP,1.0_RP-dx/2.0_RP,NQ,xmit)
         do i=1,NQ
@@ -30,10 +26,13 @@ contains
         integer, intent(in) :: n,NQ
         real(kind=RP), dimension(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution
         real(kind=RP), intent(in)                                           :: t
-        real(kind=RP), intent(in), dimension(1:nq*nq,1:(n+1),1:n+1,1:3)     :: u
+        real(kind=RP), intent(in), dimension(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)     :: u
         REAL(KIND=RP),intent(in),dimension(:,:)                             :: D
-
-
+        REAL(KIND=RP),dimension(:,:,:,:,:,:,:),allocatable                  ::L1,l2,l3
+        call computeL(u,D,1,L1)
+        call computeL(u,D,2,L2)
+        call computeL(u,D,3,l3)
+        solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-.25_RP*dx**2*l3)
 
     end function
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -365,7 +364,7 @@ contains
         end SELECT
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine RungeKutta5explizit(ustar,t,nq,n,numvar,dt,Dval,Sval)
+    subroutine RungeKutta5explizit(ustar,t,nq,n,numvar,dt,Dval)
         IMPLICIT NONE
         !ustar=bekannte Werte
         INTEGER,INTENT(IN)                                          :: numvar,n,nq
