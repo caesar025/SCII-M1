@@ -47,29 +47,120 @@ contains
         !local Variables
         INTEGER                                             ::var,k,j,i,o,l,m,n,nq
         REAL(KIND=RP),dimension(:,:),allocatable                        ::Fsharp
+        REAL(KIND=RP),dimension(:,:,:),allocatable                        ::FRand0,FRand1,uR,uL
         nq=size(u,dim=1)
         n=size(u,dim=4)
         select case(dir)
-            case(1)
-                do var=1,5
-                do k=1,n+1
-                    do j=1,n+1
-                        do i=1,n+1
-                            do o=1,nq
-                                do l=1,nq
-                                    do m=1,nq
+        case(1)
+           do o=1,nq
+               do l=1,nq
+                    do m=1,nq
+                    do k=1,n+1
+                        do j=1,n+1
+                            do i=1,n+1
+                                        do var=1,5 !! besser 
                                         call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,'ST',Fsharp)
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(i,:),Fsharp(:,var))
                                     enddo
                                 enddo
+                            enddo
+                            !Randbedingungen 
+                            if(m==1) then 
+                                   uL=u(nq,l,o,n+1,:,:,:)
+                            ELSE
+                                   uL=u(m-1,l,o,n+1,:,:,:)
+                            endif 
+                            if(m==n+1) then 
+                                   uR=u(1,l,o,1,:,:,:)
+                            ELSE
+                                   uR=u(m+1,l,o,1,:,:,:)
+                            endif 
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,0,FRand0) 
+                            call computeLocalLaxFriedrich(u(m,l,o,n+1,:,:,:),uR,dir,1,FRand1) 
+
+                            do var=1,5
+                            result(m,l,o,1,:,:,var)=result(m,l,o,1,:,:,var)+FRand0(:,:,var)
+                            result(m,l,o,n+1,:,:,var)=result(m,l,o,n+1,:,:,var)+FRand1(:,:,var)
                             enddo
                         enddo
                     enddo
                 enddo
                 enddo
 
+       case(2)
+         do o=1,nq
+             do l=1,nq
+                  do m=1,nq
+                  do k=1,n+1
+                      do j=1,n+1
+                          do i=1,n+1
+                                        do var=1,5 !! besser 
+                                        call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,'ST',Fsharp)
+                                        result(m,l,o,i,j,k,var)=2*dot_product(D(j,:),Fsharp(:,var))
+                                    enddo
+                                enddo
+                            enddo
+                            !Randbedingungen 
+                            if(l==1) then 
+                                   uL=u(m,nq,o,:,n+1,:,:)
+                            ELSE
+                                   uL=u(m,l-1,o,:,n+1,:,:)
+                            endif 
+                            if(l==n+1) then 
+                                   uR=u(m,1,o,:,1,:,:)
+                            ELSE
+                                   uR=u(m,l+1,o,:,1,:,:)
+                            endif 
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,FRand0) 
+                            call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,1,FRand1) 
+
+
+                            do var=1,5
+                            result(m,l,o,:,1,:,var)=result(m,l,o,:,1,:,var)+FRand0(:,:,var)
+                            result(m,l,o,:,n+1,:,var)=result(m,l,o,:,n+1,:,var)+FRand1(:,:,var)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+                enddo
+        case(3)
+           do o=1,nq
+               do l=1,nq
+                    do m=1,nq
+                    do k=1,n+1
+                        do j=1,n+1
+                            do i=1,n+1
+                                        do var=1,5 !! besser 
+                                        call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,'ST',Fsharp)
+                                        result(m,l,o,i,j,k,var)=2*dot_product(D(k,:),Fsharp(:,var))
+                                    enddo
+                                enddo
+                            enddo
+                            !Randbedingungen 
+                            if(o==1) then 
+                                   uL=u(m,l,nq,:,:,n+1,:)
+                            ELSE
+                                   uL=u(m,l,o-1,:,:,n+1,:)
+                            endif 
+                            if(o==n+1) then 
+                                   uR=u(m,l,1,:,:,1,:)
+                            ELSE
+                                   uR=u(m,l,o+1,:,:,1,:)
+                            endif 
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,FRand0) 
+                            call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,1,FRand1) 
+
+                            do var=1,5
+                            result(m,l,o,:,:,1,var)=result(m,l,o,:,:,1,var)+FRand0(:,:,var)
+                            result(m,l,o,:,:,n+1,var)=result(m,l,o,:,:,n+1,var)+FRand1(:,:,var)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+                enddo
         end select
     end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calculateEuler3DFlux(u,dir,result)
     !Subroutine gets the values of u and return the flux for the spcified direction
     !dir=1,2,3 stands for x,y,z direction
@@ -153,9 +244,126 @@ contains
 
     !end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !subroutine computeLocalLaxFriedrich(uL,uR)
-        !IMPLICIT NONE
-    !end subroutine
+    subroutine computeLocalLaxFriedrich(uL,uR,dir,pos,result)
+    ! Compute loacal LaxFriedirch 
+    ! Returns Matrix with the localLaxFriedrich at every Interface point
+         implicit none
+         REAL(KIND=RP), INTENT(IN), DIMENSION(:,:,:) :: uL, uR
+         REAL(KIND=RP), INTENT(out), DIMENSION(:,:,:),allocatable:: result
+         INTEGER, INTENT(IN):: dir,pos 
+         REAL(KIND=RP), DIMENSION(:,:,:),allocatable :: FL,FR 
+         REAL(KIND=RP), DIMENSION(:,:),allocatable :: lamMax
+         INTEGER :: n 
+
+        n=size(uL,dim=1)
+        ALLOCATE(result(1:n+1,1:n+1,5))
+        ALLOCATE(FR(1:n+1,1:n+1,5))
+        ALLOCATE(FL(1:n+1,1:n+1,5))
+        ALLOCATE(lamMax(1:n+1,1:n+1))
+
+         call calculateEulerRandFlux(uL,dir,FL)
+         call calculateEulerRandFlux(uR,dir,FR)
+         call lambdaMax(uL,uR,dir,lamMax)
+         SELECT CASE(pos)
+         CASE(0)
+                 result(:,:,1)=-(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FR(:,:,1) 
+                 result(:,:,2)=-(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FR(:,:,2) 
+                 result(:,:,3)=-(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FR(:,:,3) 
+                 result(:,:,4)=-(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FR(:,:,4) 
+                 result(:,:,5)=-(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FR(:,:,5) 
+         CASE(1)
+
+                 result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FL(:,:,1)
+                 result(:,:,2)=(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FL(:,:,2)
+                 result(:,:,3)=(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FL(:,:,3)
+                 result(:,:,4)=(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FL(:,:,4)
+                 result(:,:,5)=(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FL(:,:,5)
+       END SELECT
+    end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ subroutine lambdaMax (uL,uR,dir,result)
+         !Computes the max of the eigenvalues at every Interface
+        
+        implicit none 
+        REAL(KIND=RP),dimension(:,:,:),intent(in)     :: uR, uL
+        INTEGER                         ,intent(in)     :: dir 
+        REAL(KIND=RP),dimension(:,:),intent(OUT),allocatable   ::result
+        REAL(KIND=RP),dimension(:,:),allocatable    :: pR,hR,cR,pL,hL,cL
+        REAL(KIND=RP),dimension(:,:,:),allocatable :: lambda 
+        INTEGER                         :: l,k,n
+
+        n=size(uL,dim=1)
+
+
+        ALLOCATE(result(1:n+1,1:n+1))
+        ALLOCATE(lambda(1:n+1,1:n+1,6))
+        ALLOCATE(pR(1:n+1,1:n+1))
+        ALLOCATE(hR(1:n+1,1:n+1))
+        ALLOCATE(cR(1:n+1,1:n+1)) 
+        ALLOCATE(pL(1:n+1,1:n+1))
+        ALLOCATE(hL(1:n+1,1:n+1))
+        ALLOCATE(cL(1:n+1,1:n+1))
+        
+        pR=(gamma-1.0_RP)*(uR(:,:,5)-0.5_RP*(uR(:,:,2)**2+uR(:,:,3)**2+uR(:,:,4)**2)/uR(:,:,1)) 
+        hR=(uR(:,:,5)+pR)/uR(:,:,1)
+        cR=sqrt((gamma-1)*(hR-((uR(:,:,2)/uR(:,:,1))**2+(uR(:,:,3)/uR(:,:,1))**2+(uR(:,:,4)/uR(:,:,1))**2)/2))
+        lambda(:,:,1)=uR(:,:,dir+1)/uR(:,:,1)
+        lambda(:,:,2)=uR(:,:,dir+1)/uR(:,:,1)-cR
+        lambda(:,:,3)=uR(:,:,dir+1)/uR(:,:,1)+cR
+        pL=(gamma-1.0_RP)*(uL(:,:,5)-0.5_RP*(uL(:,:,2)**2+uL(:,:,3)**2+uL(:,:,4)**2)/uL(:,:,1)) 
+        hL=(uL(:,:,5)+pL)/uL(:,:,1)
+        cL=sqrt((gamma-1)*(hL-((uL(:,:,2)/uL(:,:,1))**2+(uL(:,:,3)/uL(:,:,1))**2+(uL(:,:,4)/uL(:,:,1))**2)/2))
+        lambda(:,:,4)=uL(:,:,dir+1)/uL(:,:,1)
+        lambda(:,:,5)=uL(:,:,dir+1)/uL(:,:,1)-cL
+        lambda(:,:,6)=uL(:,:,dir+1)/uL(:,:,1)+cL
+        lambda=abs(lambda)
+
+
+        do l=1,n+1
+        do k=1,n+1
+        result(l,k)=maxval(lambda(l,k,:))
+        enddo
+        enddo
+        
+        end subroutine 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine calculateEulerRandFlux(u,dir,result)
+        IMPLICIT NONE
+    !Subroutine gets the values of u and return the flux for the spcified direction
+    !dir=1,2,3 stands for x,y,z direction
+        REAL(KIND=RP),dimension(:,:,:),intent(in)     :: u
+        INTEGER                         ,intent(in)     :: dir
+        REAL(KIND=RP),dimension(:,:,:),intent(out),allocatable    :: result
+        !local variables beyond here
+        INTEGER                                         :: n
+        REAL(KIND=RP),dimension(:,:),allocatable    ::p
+        n=size(u,dim=1)
+        ALLOCATE(result(1:n+1,1:n+1,5))
+        ALLOCATE(p(1:n+1,1:n+1))
+        p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)**2+u(:,:,3)**2+u(:,:,4)**2)/u(:,:,1))
+        SELECT CASE (dir)
+            CASE(1)
+                result(:,:,1)=u(:,:,2)
+                result(:,:,2)=u(:,:,2)**2/u(:,:,1)+p
+                result(:,:,3)=u(:,:,2)*u(:,:,3)/u(:,:,1)
+                result(:,:,4)=u(:,:,2)*u(:,:,4)/u(:,:,1)
+                result(:,:,5)=(u(:,:,5)+p)*u(:,:,2)/u(:,:,1)
+            CASE(2)
+                result(:,:,1)=u(:,:,3)
+                result(:,:,2)=u(:,:,2)*u(:,:,3)/u(:,:,1)
+                result(:,:,3)=u(:,:,3)**2/u(:,:,1)+p
+                result(:,:,4)=u(:,:,3)*u(:,:,4)/u(:,:,1)
+                result(:,:,5)=(u(:,:,5)+p)*u(:,:,3)/u(:,:,1)
+            CASE(3)
+                result(:,:,1)=u(:,:,4)
+                result(:,:,2)=u(:,:,2)*u(:,:,4)/u(:,:,1)
+                result(:,:,3)=u(:,:,3)*u(:,:,4)/u(:,:,1)
+                result(:,:,4)=u(:,:,4)**2/u(:,:,1)+p
+                result(:,:,5)=(u(:,:,5)+p)*u(:,:,4)/u(:,:,1)
+            CASE DEFAULT
+                print*,'Specify 1,2 or 3'
+        end SELECT
+    end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine RungeKutta5explizit(ustar,t,nq,n,numvar,dt,Dval,Sval)
         IMPLICIT NONE
