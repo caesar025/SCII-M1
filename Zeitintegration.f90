@@ -368,7 +368,7 @@ contains
         IMPLICIT NONE
         !ustar=bekannte Werte
         INTEGER,INTENT(IN)                                          :: numvar,n,nq
-        REAL(KIND=RP),intent(in),dimension(:,:)         :: Dval,Sval
+        REAL(KIND=RP),intent(in),dimension(:,:)         :: Dval
         REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:(n+1),1:n+1,1:n+1,1:numvar)  :: ustar
         REAL(KIND=RP),INTENT(IN)                                    :: t
         !local
