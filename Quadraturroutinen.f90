@@ -266,7 +266,7 @@ subroutine LagrangePolynomAuswertenEinzel(x,j,l,xst)
     REAL(KIND=RP),DIMENSion(:),intent(in)                   :: xst
     INTEGER,INTENT(IN)                                      :: j
     REAL(KIND=RP),INTENT(OUT)                               :: l
-    INTEGER                                                 :: N,start,i,m
+    INTEGER                                                 :: m
     l=1.0_RP
         do m=1,uBound(xst,1)
         if (m==j+1) cycle
