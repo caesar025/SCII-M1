@@ -41,13 +41,14 @@ program Driver
     enddo
     call Initialcondition(xyz,u)
     call lambdamaxglobal(u,a)
-    dt=CFL/a*(dx/real(N+1,kind=RP))
+    dt=CFL/(3*a)*(dx/real(N+1,kind=RP))
     do while(tend-t>epsilon(dt))
         print*,t
         call lambdamaxglobal(u,a)
-        dt=CFL*(dx/(a*real(N+1,kind=RP)))
+        dt=CFL/(3*a)*(dx/real(N+1))
         if(t+dt>tend) dt=tend-t
         call RungeKutta5explizit(u,nq,n,5,dt,D)
+        !print*,u(1,1,1,1,:,:,1)
         t=t+dt
     end do
                 

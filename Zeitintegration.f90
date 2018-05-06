@@ -58,36 +58,36 @@ contains
                     do k=1,n+1
                         do j=1,n+1
                             do i=1,n+1
-                                        do var=1,5 !! besser 
+                                    do var=1,5 !! besser
                                         call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,'ST',Fsharp)
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(i,:),Fsharp(:,var))
 
                                     enddo
-                                enddo
                             enddo
+                        enddo
                             !Randbedingungen 
-                            if(m==1) then 
-                                   uL=u(nq,l,o,n+1,:,:,:)
-                            ELSE
-                                   uL=u(m-1,l,o,n+1,:,:,:)
-                            endif 
-                            if(m==nq) then
+                        if(m==1) then
+                              uL=u(nq,l,o,n+1,:,:,:)
+                        ELSE
+                              uL=u(m-1,l,o,n+1,:,:,:)
+                        endif
+                        if(m==nq) then
                                    uR=u(1,l,o,1,:,:,:)
-                            ELSE
+                        ELSE
                                    uR=u(m+1,l,o,1,:,:,:)
-                            endif 
+                        endif
 
-                            call computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,0,FRand0) 
-                            call computeLocalLaxFriedrich(u(m,l,o,n+1,:,:,:),uR,dir,1,FRand1) 
+                        call computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,0,FRand0)
+                        call computeLocalLaxFriedrich(u(m,l,o,n+1,:,:,:),uR,dir,1,FRand1)
 
-                            do var=1,5
+                        do var=1,5
                             result(m,l,o,1,:,:,var)=result(m,l,o,1,:,:,var)+FRand0(:,:,var)
                             result(m,l,o,n+1,:,:,var)=result(m,l,o,n+1,:,:,var)+FRand1(:,:,var)
-                            enddo
                         enddo
                     enddo
                 enddo
                 enddo
+           enddo
 
        case(2)
          do o=1,nq
@@ -113,8 +113,8 @@ contains
                             ELSE
                                    uR=u(m,l+1,o,:,1,:,:)
                             endif 
-                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,FRand0) 
-                            call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,1,FRand1) 
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,FRand0)
+                            call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,1,FRand1)
 
 
                             do var=1,5
@@ -149,8 +149,8 @@ contains
                             ELSE
                                    uR=u(m,l,o+1,:,:,1,:)
                             endif 
-                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,FRand0) 
-                            call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,1,FRand1) 
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,FRand0)
+                            call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,1,FRand1)
 
                             do var=1,5
                             result(m,l,o,:,:,1,var)=result(m,l,o,:,:,1,var)+FRand0(:,:,var)
@@ -247,11 +247,13 @@ contains
         implicit none
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(IN),allocatable::xyz
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(INOUT),allocatable::u
-        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
-        u(:,:,:,:,:,:,2)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
-        u(:,:,:,:,:,:,3)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
-        u(:,:,:,:,:,:,4)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
-        u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+        !u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
+        u(:,:,:,:,:,:,1)=1.0_RP
+        u(:,:,:,:,:,:,2)=1.0_RP
+        u(:,:,:,:,:,:,3)=1.0_RP
+        u(:,:,:,:,:,:,4)=1.0_RP
+        u(:,:,:,:,:,:,5)=1.0_RP
+       ! u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine computeLocalLaxFriedrich(uL,uR,dir,pos,result)
