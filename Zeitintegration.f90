@@ -31,7 +31,7 @@ contains
         call computeL(u,D,1,L1)
         call computeL(u,D,2,L2)
         call computeL(u,D,3,l3)
-        solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-.25_RP*dx**2*l3)
+        solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-0.25_RP*dx**2*l3)
 
     end function
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -65,6 +65,7 @@ contains
                                     enddo
                             enddo
                         enddo
+                    enddo
                             !Randbedingungen 
                         if(m==1) then
                               uL=u(nq,l,o,n+1,:,:,:)
@@ -77,14 +78,14 @@ contains
                                    uR=u(m+1,l,o,1,:,:,:)
                         endif
 
-                        call computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,0,FRand0)
-                        call computeLocalLaxFriedrich(u(m,l,o,n+1,:,:,:),uR,dir,1,FRand1)
+                        call computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,1,FRand0)
+                        call computeLocalLaxFriedrich(u(m,l,o,n+1,:,:,:),uR,dir,0,FRand1)
 
                         do var=1,5
                             result(m,l,o,1,:,:,var)=result(m,l,o,1,:,:,var)+FRand0(:,:,var)
                             result(m,l,o,n+1,:,:,var)=result(m,l,o,n+1,:,:,var)+FRand1(:,:,var)
                         enddo
-                    enddo
+
                 enddo
                 enddo
            enddo
@@ -96,12 +97,13 @@ contains
                   do k=1,n+1
                       do j=1,n+1
                           do i=1,n+1
-                                        do var=1,5 !! besser 
+                                    do var=1,5 !! besser
                                         call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,'ST',Fsharp)
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(j,:),Fsharp(:,var))
                                     enddo
-                                enddo
                             enddo
+                      enddo
+                  enddo
                             !Randbedingungen 
                             if(l==1) then 
                                    uL=u(m,nq,o,:,n+1,:,:)
@@ -113,15 +115,15 @@ contains
                             ELSE
                                    uR=u(m,l+1,o,:,1,:,:)
                             endif 
-                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,FRand0)
-                            call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,1,FRand1)
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,1,FRand0)
+                            call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,0,FRand1)
 
 
                             do var=1,5
                             result(m,l,o,:,1,:,var)=result(m,l,o,:,1,:,var)+FRand0(:,:,var)
                             result(m,l,o,:,n+1,:,var)=result(m,l,o,:,n+1,:,var)+FRand1(:,:,var)
                             enddo
-                        enddo
+
                     enddo
                 enddo
                 enddo
@@ -132,12 +134,13 @@ contains
                     do k=1,n+1
                         do j=1,n+1
                             do i=1,n+1
-                                        do var=1,5 !! besser 
+                                    do var=1,5 !! besser
                                         call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,'ST',Fsharp)
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(k,:),Fsharp(:,var))
                                     enddo
-                                enddo
                             enddo
+                        enddo
+                    enddo
                             !Randbedingungen 
                             if(o==1) then 
                                    uL=u(m,l,nq,:,:,n+1,:)
@@ -149,17 +152,17 @@ contains
                             ELSE
                                    uR=u(m,l,o+1,:,:,1,:)
                             endif 
-                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,FRand0)
-                            call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,1,FRand1)
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,1,FRand0)
+                            call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,0,FRand1)
 
                             do var=1,5
                             result(m,l,o,:,:,1,var)=result(m,l,o,:,:,1,var)+FRand0(:,:,var)
                             result(m,l,o,:,:,n+1,var)=result(m,l,o,:,:,n+1,var)+FRand1(:,:,var)
                             enddo
-                        enddo
+
                     enddo
                 enddo
-                enddo
+            enddo
         end select
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -247,13 +250,11 @@ contains
         implicit none
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(IN),allocatable::xyz
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(INOUT),allocatable::u
-        !u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
-        u(:,:,:,:,:,:,1)=1.0_RP
+        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
         u(:,:,:,:,:,:,2)=1.0_RP
         u(:,:,:,:,:,:,3)=1.0_RP
         u(:,:,:,:,:,:,4)=1.0_RP
-        u(:,:,:,:,:,:,5)=1.0_RP
-       ! u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+        u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine computeLocalLaxFriedrich(uL,uR,dir,pos,result)
@@ -278,11 +279,11 @@ contains
          call lambdaMax(uL,uR,dir,lamMax)
          SELECT CASE(pos)
          CASE(0)
-                 result(:,:,1)=-(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FR(:,:,1) 
-                 result(:,:,2)=-(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FR(:,:,2) 
-                 result(:,:,3)=-(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FR(:,:,3) 
-                 result(:,:,4)=-(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FR(:,:,4) 
-                 result(:,:,5)=-(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FR(:,:,5) 
+                 result(:,:,1)=-(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FR(:,:,1)
+                 result(:,:,2)=-(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FR(:,:,2)
+                 result(:,:,3)=-(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FR(:,:,3)
+                 result(:,:,4)=-(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FR(:,:,4)
+                 result(:,:,5)=-(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FR(:,:,5)
          CASE(1)
 
                  result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FL(:,:,1)
@@ -351,6 +352,7 @@ contains
         allocate(p(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1),c(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1))
         p=(gamma-1.0_RP)*(u(:,:,:,:,:,:,5)-0.5_RP*(u(:,:,:,:,:,:,2)**2+u(:,:,:,:,:,:,3)**2+u(:,:,:,:,:,:,4)**2)/u(:,:,:,:,:,:,1))
         c=sqrt((gamma)*p/(u(:,:,:,:,:,:,1)))
+
         !! max from abs(eigenvalue)
         lambdamax=max(maxval(abs(u(:,:,:,:,:,:,2)/u(:,:,:,:,:,:,1)+c)),maxval(abs(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1)+c)),&
             maxval(abs(u(:,:,:,:,:,:,4)/u(:,:,:,:,:,:,1)+c)),maxval(abs(u(:,:,:,:,:,:,2)/u(:,:,:,:,:,:,1)-c)),&

@@ -42,8 +42,14 @@ program Driver
     call Initialcondition(xyz,u)
     call lambdamaxglobal(u,a)
     dt=CFL/(3*a)*(dx/real(N+1,kind=RP))
+!-ffpe-trap=denormal,invalid,zero,overflow,underflow
     do while(tend-t>epsilon(dt))
+        print*,'t'
         print*,t
+        print*,'dt'
+        print*,dt
+        print*,'max(u)'
+        print*,maxval(u)
         call lambdamaxglobal(u,a)
         dt=CFL/(3*a)*(dx/real(N+1))
         if(t+dt>tend) dt=tend-t
