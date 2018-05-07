@@ -48,8 +48,8 @@ program Driver
         print*,t
         print*,'dt'
         print*,dt
-        print*,'max(u)'
-        print*,mAXVAL(U)
+        print*,'sum(energy)'
+        print*,sum(U(:,:,:,:,:,:,5))
         call lambdamaxglobal(u,a)
         dt=CFL/(3*a)*(dx/real(N+1))
         if(t+dt>tend) dt=tend-t
