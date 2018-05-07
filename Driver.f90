@@ -15,7 +15,7 @@ program Driver
     Fehler=0.0_RP
     EOC=0.0_RP
     call Vorbereiten(n,nq,D)
-    call LegendreGaussLobattoNodesAndWeights(n,xi,w)
+    call LegendreGaussLobattoNodesandWeights(n,xi,w)
    !! Bestimme GL punkte in jeder Zelle
     do k=0,nq-1
     xl(k+1)=(k+1.0_rp/2)*dx
@@ -40,7 +40,7 @@ program Driver
     enddo
     enddo
     call Initialcondition(xyz,u)
-    call lambdamaxglobal(u,a)
+    call lambdaMaxGlobal(u,a)
     dt=CFL/(3*a)*(dx/real(N+1,kind=RP))
 !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     do while(tend-t>epsilon(dt))
@@ -50,7 +50,7 @@ program Driver
         print*,dt
         print*,'sum(energy)'
         print*,sum(U(:,:,:,:,:,:,5))
-        call lambdamaxglobal(u,a)
+        call lambdaMaxGlobal(u,a)
         dt=CFL/(3*a)*(dx/real(N+1))
         if(t+dt>tend) dt=tend-t
         call RungeKutta5explizit(u,nq,n,5,dt,D)
