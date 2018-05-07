@@ -78,13 +78,13 @@ contains
                                    uR=u(m+1,l,o,1,:,:,:)
                         endif
 
-                        call computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,1,FRand0)
-                        call computeLocalLaxFriedrich(u(m,l,o,n+1,:,:,:),uR,dir,0,FRand1)
+                        call computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,0,FRand0)
+                        call computeLocalLaxFriedrich(u(m,l,o,n+1,:,:,:),uR,dir,1,FRand1)
 
-                        do var=1,5
-                            result(m,l,o,1,:,:,var)=result(m,l,o,1,:,:,var)+FRand0(:,:,var)
-                            result(m,l,o,n+1,:,:,var)=result(m,l,o,n+1,:,:,var)+FRand1(:,:,var)
-                        enddo
+
+                            result(m,l,o,1,:,:,:)=result(m,l,o,1,:,:,:)-FRand0
+                            result(m,l,o,n+1,:,:,:)=result(m,l,o,n+1,:,:,:)+FRand1
+
 
                 enddo
                 enddo
@@ -115,14 +115,14 @@ contains
                             ELSE
                                    uR=u(m,l+1,o,:,1,:,:)
                             endif 
-                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,1,FRand0)
-                            call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,0,FRand1)
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,FRand0)
+                            call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,1,FRand1)
 
 
-                            do var=1,5
-                            result(m,l,o,:,1,:,var)=result(m,l,o,:,1,:,var)+FRand0(:,:,var)
-                            result(m,l,o,:,n+1,:,var)=result(m,l,o,:,n+1,:,var)+FRand1(:,:,var)
-                            enddo
+
+                            result(m,l,o,:,1,:,:)=result(m,l,o,:,1,:,:)-FRand0
+                            result(m,l,o,:,n+1,:,:)=result(m,l,o,:,n+1,:,:)+FRand1
+
 
                     enddo
                 enddo
@@ -152,12 +152,12 @@ contains
                             ELSE
                                    uR=u(m,l,o+1,:,:,1,:)
                             endif 
-                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,1,FRand0)
-                            call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,0,FRand1)
+                            call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,FRand0)
+                            call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,1,FRand1)
 
                             do var=1,5
-                            result(m,l,o,:,:,1,var)=result(m,l,o,:,:,1,var)+FRand0(:,:,var)
-                            result(m,l,o,:,:,n+1,var)=result(m,l,o,:,:,n+1,var)+FRand1(:,:,var)
+                            result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-FRand0
+                            result(m,l,o,:,:,n+1,:)=result(m,l,o,:,:,n+1,:)+FRand1
                             enddo
 
                     enddo
@@ -279,11 +279,11 @@ contains
          call lambdaMax(uL,uR,dir,lamMax)
          SELECT CASE(pos)
          CASE(0)
-                 result(:,:,1)=-(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FR(:,:,1)
-                 result(:,:,2)=-(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FR(:,:,2)
-                 result(:,:,3)=-(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FR(:,:,3)
-                 result(:,:,4)=-(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FR(:,:,4)
-                 result(:,:,5)=-(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FR(:,:,5)
+                 result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FR(:,:,1)
+                 result(:,:,2)=(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FR(:,:,2)
+                 result(:,:,3)=(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FR(:,:,3)
+                 result(:,:,4)=(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FR(:,:,4)
+                 result(:,:,5)=(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FR(:,:,5)
          CASE(1)
 
                  result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FL(:,:,1)

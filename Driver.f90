@@ -1,7 +1,7 @@
 program Driver
     use Zeitintegration
     implicit none
-    REAL(KIND=RP) :: t=0.0_rp,tend=1.0_RP,CFL=0.2,dt,a
+    REAL(KIND=RP) :: t=0.0_rp,tend=1.0_RP,CFL=0.1,dt,a
     INTEGER,parameter :: n=4,nq=10
     REAL(KIND=RP),Dimension(:,:,:,:,:,:,:),allocatable :: u,xyz
     REAL(KIND=RP),Dimension(:),allocatable :: xi,xl
@@ -49,7 +49,7 @@ program Driver
         print*,'dt'
         print*,dt
         print*,'max(u)'
-        print*,maxval(u)
+        print*,mAXVAL(U)
         call lambdamaxglobal(u,a)
         dt=CFL/(3*a)*(dx/real(N+1))
         if(t+dt>tend) dt=tend-t
