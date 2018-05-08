@@ -214,11 +214,13 @@ contains
         REAL(KIND=RP),intent(out),dimension(:,:),allocatable   :: result
         !local variables go beyond here
         INTEGER                                         ::n
-        REAL(KIND=RP),dimension(:),allocatable                   ::p2
-        REAL(KIND=RP)                               ::p1
+        REAL(KIND=RP),dimension(:),allocatable                   ::p2,c2,h2
+        REAL(KIND=RP)                               ::p1,c1,h1
         n=size(u2,dim=1)-1
         allocate(result(1:n+1,5))
         allocate(p2(1:n+1))
+        allocate(c2(1:n+1))
+        allocate(h2(1:n+1))
         p1=(gamma-1.0_RP)*(u1(5)-0.5_RP*(u1(2)**2+u1(3)**2+u1(4)**2)/u1(1))
         p2=(gamma-1.0_RP)*(u2(:,5)-0.5_RP*(u2(:,2)**2+u2(:,3)**2+u2(:,4)**2)/u2(:,1))
         SELECT CASE(whichflux)
@@ -243,6 +245,32 @@ contains
                         result(:,3)=(u1(3)*u1(4)/u1(1)+u2(:,3)*u2(:,4)/u2(:,1))*0.5_RP
                         result(:,4)=(u1(4)**2/u1(1)+u2(:,4)**2/u2(:,1))*0.5_RP+(p1+p2)*0.5_RP
                         result(:,5)=(u1(4)/u1(1)*(u1(5)+p1)+u2(:,3)/u2(:,1)*(u2(:,5)+p2))*0.5_RP
+                end SELECT
+            CASE('PI')
+                !! Pirozzoli
+                c1=sqrt((gamma)*p1/(u1(1)))
+                c2=sqrt((gamma)*p2/(u2(:,1)))
+                h1=c1+p1/u1(1)
+                h2=c2+p2/u2(:,1)
+                SELECT CASE(dir)
+                    CASE(1)
+                        result(:,1)=(u1(1)+u2(:,1))*(u1(2)/u1(1)+u2(:,2)/u2(:,1))*0.25_RP
+                        result(:,2)=((u1(1)+u2(:,1))*(u1(2)/u1(1)+u2(:,2)/u2(:,1))**2)*0.125_RP+(u1(1)+u2(:,1))*0.5_RP
+                        result(:,3)=(u1(1)+u2(:,1))*(u1(2)/u1(1)+u2(:,2)/u2(:,1))*(u1(3)/u1(1)+u2(:,3)/u2(:,1))*0.125_RP
+                        result(:,4)=(u1(1)+u2(:,1))*(u1(2)/u1(1)+u2(:,2)/u2(:,1))*(u1(4)/u1(1)+u2(:,4)/u2(:,1))*0.125_RP
+                        result(:,5)=(u1(1)+u2(:,1))*(u1(2)/u1(1)+u2(:,2)/u2(:,1))*(h1+h2)*0.125_RP
+                    CASE(2)
+                        result(:,1)=(u1(1)+u2(:,1))*(u1(3)/u1(1)+u2(:,3)/u2(:,1))*0.25_RP
+                        result(:,2)=(u1(1)+u2(:,1))*(u1(2)/u1(1)+u2(:,2)/u2(:,1))*(u1(3)/u1(1)+u2(:,3)/u2(:,1))*0.125_RP
+                        result(:,3)=((u1(1)+u2(:,1))*(u1(3)/u1(1)+u2(:,3)/u2(:,1))**2)*0.125_RP+(u1(1)+u2(:,1))*0.5_RP
+                        result(:,4)=(u1(1)+u2(:,1))*(u1(3)/u1(1)+u2(:,3)/u2(:,1))*(u1(4)/u1(1)+u2(:,4)/u2(:,1))*0.125_RP
+                        result(:,5)=(u1(1)+u2(:,1))*(u1(3)/u1(1)+u2(:,3)/u2(:,1))*(h1+h2)*0.125_RP
+                    CASE(3)
+                        result(:,1)=(u1(1)+u2(:,1))*(u1(4)/u1(1)+u2(:,4)/u2(:,1))*0.25_RP
+                        result(:,2)=(u1(1)+u2(:,1))*(u1(2)/u1(1)+u2(:,2)/u2(:,1))*(u1(4)/u1(1)+u2(:,4)/u2(:,1))*0.125_RP
+                        result(:,3)=(u1(1)+u2(:,1))*(u1(3)/u1(1)+u2(:,3)/u2(:,1))*(u1(4)/u1(1)+u2(:,4)/u2(:,1))*0.125_RP
+                        result(:,4)=((u1(1)+u2(:,1))*(u1(4)/u1(1)+u2(:,4)/u2(:,1))**2)*0.125_RP+(u1(1)+u2(:,1))*0.5_RP
+                        result(:,5)=(u1(1)+u2(:,1))*(u1(4)/u1(1)+u2(:,4)/u2(:,1))*(h1+h2)*0.125_RP
                 end SELECT
         END SELECT
     end subroutine
@@ -360,6 +388,7 @@ contains
 
 
     end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calculateEulerRandFlux(u,dir,result)
         IMPLICIT NONE
     !Subroutine gets the values of u and return the flux for the spcified direction
@@ -433,5 +462,4 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end module
