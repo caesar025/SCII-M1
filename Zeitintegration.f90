@@ -58,8 +58,8 @@ contains
                     do k=1,n+1
                         do j=1,n+1
                             do i=1,n+1
+					call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,'ST',Fsharp)
                                     do var=1,5 !! besser
-                                        call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,'ST',Fsharp)
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(i,:),Fsharp(:,var))
 
                                     enddo
@@ -97,8 +97,9 @@ contains
                   do k=1,n+1
                       do j=1,n+1
                           do i=1,n+1
+					call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,'ST',Fsharp)
                                     do var=1,5 !! besser
-                                        call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,'ST',Fsharp)
+                                        
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(j,:),Fsharp(:,var))
                                     enddo
                             enddo
@@ -134,8 +135,9 @@ contains
                     do k=1,n+1
                         do j=1,n+1
                             do i=1,n+1
+					call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,'ST',Fsharp)
                                     do var=1,5 !! besser
-                                        call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,'ST',Fsharp)
+                                        
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(k,:),Fsharp(:,var))
                                     enddo
                             enddo
@@ -155,10 +157,10 @@ contains
                             call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,FRand0)
                             call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,1,FRand1)
 
-                            do var=1,5
+                            
                             result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-FRand0
                             result(m,l,o,:,:,n+1,:)=result(m,l,o,:,:,n+1,:)+FRand1
-                            enddo
+                            
 
                     enddo
                 enddo
