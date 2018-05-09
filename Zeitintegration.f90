@@ -1,14 +1,20 @@
 module Zeitintegration
     use Quadraturroutinen
     REAL(KIND=RP),DIMENSION(:),allocatable      ::x,w,xmit,xges
+    REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable      ::xyz1
     REAL(KIND=RP)                               ::gk=9.812_RP,dx,gamma=1.4_RP
 contains
     subroutine Vorbereiten(n,nq,Dval)
         implicit none
         INTEGER,INTENT(IN)      ::n,nq
-        INTEGER                 ::i
+        INTEGER                 ::l,m,o,k,i,j
+        REAL(KIND=RP),Dimension(:),allocatable :: xi,xl
+        REAL(KIND=RP),Dimension(:,:),allocatable :: xin
         REAL(KIND=RP),DIMENSION(1:n+1,1:n+1),INTENT(out)    :: Dval
+        allocate(xi(1:n+1),xl(1:nq))
+        allocate(xin(1:n+1,1:nq))
         allocate(x(1:n+1),w(1:n+1),xges(1:nq*(n+1)),xmit(1:nq+1))
+        allocate(xyz1(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,3))
         call LegendreGaussLobattoNodesandWeights(N,x,w)
         call DifferentiationsmatrixBerechnen(x,Dval,N+1)
         dx=1.0_RP/real(nq,kind=RP)
@@ -16,6 +22,31 @@ contains
         do i=1,NQ
             xges((i-1)*(N+1)+1:i*(N+1))=xmit(i)+dx/2.0_RP*x
         enddo
+
+    call LegendreGaussLobattoNodesandWeights(n,xi,w)
+   !! Bestimme GL punkte in jeder Zelle
+    do k=0,nq-1
+    xl(k+1)=(k+1.0_rp/2)*dx
+    do i=1,n+1
+    xin(i,k+1)=xl(k+1)+dx/2*xi(i)
+    end do
+    end do
+  !! Bestimme alle punkte.  
+    do o=1,nq
+    do l=1,nq
+    do m=1,nq
+    do k=1,n+1
+    do j=1,n+1
+    do i=1,n+1
+    xyz1(m,l,o,i,j,k,1)=xin(i,m)
+    xyz1(m,l,o,i,j,k,2)=xin(j,l)
+    xyz1(m,l,o,i,j,k,3)=xin(k,o)
+    enddo
+    enddo
+    enddo
+    enddo
+    enddo
+    enddo
     end subroutine
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -35,6 +66,66 @@ contains
 
     end function
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function Rmanu(u,N,NQ,D,t) result(solution)
+        implicit none
+        integer, intent(in) :: n,NQ
+        real(KIND=RP), intent(in) ::t
+        real(kind=RP), dimension(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution
+        real(kind=RP), dimension(:,:,:,:,:,:,:),allocatable                 ::res 
+        real(kind=RP), intent(in), dimension(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)     :: u
+        REAL(KIND=RP),intent(in),dimension(:,:)                             :: D
+        REAL(KIND=RP),dimension(:,:,:,:,:,:,:),allocatable                  ::L1,l2,l3
+        call computeL(u,D,1,L1)
+        call computeL(u,D,2,L2)
+        call computeL(u,D,3,l3)
+        call Residum(t,res)
+        solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-0.25_RP*dx**2*l3)
+        solution=solution+res
+
+    end function
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine Residum (t,result)
+        implicit none
+        REAL(KIND=RP),INTENT(IN):: t
+        REAL(KIND=RP),INTENT(OUT),DIMENSION(:,:,:,:,:,:,:),allocatable::result
+        REAL(KIND=RP):: c1,c2,c3,c4,c5
+        INTEGER::o,l,m,k,j,i,n,nq
+        nq=size(xyz1,dim=1)
+        n=size(xyz1,dim=4)-1
+        ALLOCATE(result(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:3))
+
+        c1=pi/10.0_RP
+        c2=-1.0_RP/5.0_RP*pi+pi/20.0_rp*(1.0_rp+5.0_RP*gamma)
+        c3=pi/100.0_RP*(gamma-1)
+        c4=(-16.0_RP*pi+pi*(9.0_RP+15.0_RP*gamma))/20.0_RP
+        c5=(3*pi*gamma-2*pi)/100.0_RP
+
+         do o=1,nq
+         do l=1,nq
+         do m=1,nq
+         do k=1,n+1
+         do j=1,n+1
+         do i=1,n+1
+         result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))    
+         result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))&
+                 +c3*cos(2.0_RP*pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))    
+         result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
+         result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
+         result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))&
+                 +c5*cos(2.0_RP*pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))
+         enddo
+         enddo
+         enddo
+         enddo
+         enddo
+         enddo
+
+
+
+
+
+        end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine computeL(u,D,dir,result)
         implicit none
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),intent(in)           ::u
@@ -46,7 +137,7 @@ contains
         INTEGER                                             ::var,k,j,i,o,l,m,n,nq
         REAL(KIND=RP),dimension(:,:),allocatable                        ::Fsharp
         REAL(KIND=RP),dimension(:,:,:),allocatable                        ::FRand0,FRand1,uR,uL
-        CHARACTER(len=2)                     ::whichflux='PI'
+        CHARACTER(len=2)                     ::whichflux='ST'
         nq=size(u,dim=1)
         n=size(u,dim=4)-1
         allocate(result(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5))
@@ -180,7 +271,7 @@ contains
         INTEGER                                         :: n
         REAL(KIND=RP),dimension(:,:,:),allocatable    ::p
         n=size(u,dim=1)-1
-        ALLOCATE(result(1:n+1,1:n+1,1:n+1,5))
+        ALLOCATE(result(1:n+1,1:n+1,1:n+1,1:5))
         ALLOCATE(p(1:n+1,1:n+1,1:n+1))
         p=(gamma-1.0_RP)*(u(:,:,:,5)-0.5_RP*(u(:,:,:,2)**2+u(:,:,:,3)**2+u(:,:,:,4)**2)/u(:,:,:,1))
         SELECT CASE (dir)
@@ -220,7 +311,7 @@ contains
         REAL(KIND=RP),dimension(:),allocatable                   ::p2,c2,h2
         REAL(KIND=RP)                               ::p1,c1,h1
         n=size(u2,dim=1)-1
-        allocate(result(1:n+1,5))
+        allocate(result(1:n+1,1:5))
         allocate(p2(1:n+1))
         allocate(c2(1:n+1))
         allocate(h2(1:n+1))
@@ -277,11 +368,10 @@ contains
                 end SELECT
         END SELECT
     end subroutine
-    subroutine Initialcondition(xyz,u)
+    subroutine Initialcondition(u)
         implicit none
-        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(IN),allocatable::xyz
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(INOUT),allocatable::u
-        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
+        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz1(:,:,:,:,:,:,1)+xyz1(:,:,:,:,:,:,2)+xyz1(:,:,:,:,:,:,3)))/10.0_rp
         u(:,:,:,:,:,:,2)=1.0_RP
         u(:,:,:,:,:,:,3)=1.0_RP
         u(:,:,:,:,:,:,4)=1.0_RP
@@ -443,7 +533,6 @@ contains
         result(l,k)=maxval(lambda(l,k,:))
         enddo
         enddo
-
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine lambdaMaxGlobal(u,lambdamax)
@@ -540,6 +629,5 @@ contains
         enddo
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end module
