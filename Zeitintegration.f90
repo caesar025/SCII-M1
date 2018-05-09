@@ -31,7 +31,7 @@ contains
         call computeL(u,D,1,L1)
         call computeL(u,D,2,L2)
         call computeL(u,D,3,l3)
-        solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-0.25_RP*dx**2*l3)
+        solution=8.0_RP/(dx**3)*((-0.25_RP*dx**2)*l1-(0.25_RP*dx**2)*l2-(0.25_RP*dx**2)*l3)
 
     end function
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -59,7 +59,7 @@ contains
                     do k=1,n+1
                         do j=1,n+1
                             do i=1,n+1
-					call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp)
+                                    call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp)
                                     do var=1,5 !! besser
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(i,:),Fsharp(:,var))
 
@@ -67,7 +67,7 @@ contains
                             enddo
                         enddo
                     enddo
-                            !Randbedingungen 
+                            !Randbedingungen
                         if(m==1) then
                               uL=u(nq,l,o,n+1,:,:,:)
                         ELSE
@@ -100,23 +100,23 @@ contains
                           do i=1,n+1
 					call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,whichflux,Fsharp)
                                     do var=1,5 !! besser
-                                        
+
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(j,:),Fsharp(:,var))
                                     enddo
                             enddo
                       enddo
                   enddo
-                            !Randbedingungen 
-                            if(l==1) then 
+                            !Randbedingungen
+                            if(l==1) then
                                    uL=u(m,nq,o,:,n+1,:,:)
                             ELSE
                                    uL=u(m,l-1,o,:,n+1,:,:)
-                            endif 
+                            endif
                             if(l==nq) then
                                    uR=u(m,1,o,:,1,:,:)
                             ELSE
                                    uR=u(m,l+1,o,:,1,:,:)
-                            endif 
+                            endif
                             call computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,whichflux,FRand0)
                             call computeLocalLaxFriedrich(u(m,l,o,:,n+1,:,:),uR,dir,1,whichflux,FRand1)
 
@@ -138,37 +138,37 @@ contains
                             do i=1,n+1
 					call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,whichflux,Fsharp)
                                     do var=1,5 !! besser
-                                        
+
                                         result(m,l,o,i,j,k,var)=2*dot_product(D(k,:),Fsharp(:,var))
                                     enddo
                             enddo
                         enddo
                     enddo
-                            !Randbedingungen 
-                            if(o==1) then 
+                            !Randbedingungen
+                            if(o==1) then
                                    uL=u(m,l,nq,:,:,n+1,:)
                             ELSE
                                    uL=u(m,l,o-1,:,:,n+1,:)
-                            endif 
+                            endif
                             if(o==nq) then
                                    uR=u(m,l,1,:,:,1,:)
                             ELSE
                                    uR=u(m,l,o+1,:,:,1,:)
-                            endif 
+                            endif
                             call computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,whichflux,FRand0)
                             call computeLocalLaxFriedrich(u(m,l,o,:,:,n+1,:),uR,dir,1,whichflux,FRand1)
 
-                            
+
                             result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-FRand0
                             result(m,l,o,:,:,n+1,:)=result(m,l,o,:,:,n+1,:)+FRand1
-                            
+
 
                     enddo
                 enddo
             enddo
         end select
     end subroutine
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calculateEuler3DFlux(u,dir,result)
     !Subroutine gets the values of u and return the flux for the spcified direction
     !dir=1,2,3 stands for x,y,z direction
@@ -210,7 +210,7 @@ contains
     subroutine computeFsharp(u1,u2,dir,whichflux,result)
     !Subroutine computes the Volume flux Fsharp
         implicit none
-        REAL(KIND=RP),intent(in) ,dimension(5)                       ::u1
+        REAL(KIND=RP),intent(in) ,dimension(:)                       ::u1
         REAL(KIND=RP),intent(in),dimension(:,:)           ::u2
         CHARACTER(len=*),intent(in)                     ::whichflux
         INTEGER         ,intent(in)                     ::dir
@@ -289,15 +289,15 @@ contains
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine computeLocalLaxFriedrich(uL,uR,dir,pos,whichflux,result)
-    ! Compute loacal LaxFriedirch 
+    ! Compute local LaxFriedrich
     ! Returns Matrix with the localLaxFriedrich at every Interface point
          implicit none
          REAL(KIND=RP), INTENT(IN), DIMENSION(:,:,:) :: uL, uR
          REAL(KIND=RP), INTENT(out), DIMENSION(:,:,:),allocatable:: result
-         INTEGER, INTENT(IN):: dir,pos 
+         INTEGER, INTENT(IN):: dir,pos
          REAL(KIND=RP), DIMENSION(:,:,:),allocatable :: FL,FR,FPI
          REAL(KIND=RP), DIMENSION(:,:),allocatable :: lamMax
-         INTEGER :: n 
+         INTEGER :: n
          CHARACTER(len=*),intent(in)                     ::whichflux
 
         n=size(uL,dim=1)-1
@@ -314,18 +314,18 @@ contains
          call lambdaMax(uL,uR,dir,lamMax)
          SELECT CASE(pos)
          CASE(0)
-                 result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FR(:,:,1)
-                 result(:,:,2)=(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FR(:,:,2)
-                 result(:,:,3)=(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FR(:,:,3)
-                 result(:,:,4)=(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FR(:,:,4)
-                 result(:,:,5)=(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FR(:,:,5)
+                 result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2.0_RP-FR(:,:,1)
+                 result(:,:,2)=(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2.0_RP-FR(:,:,2)
+                 result(:,:,3)=(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2.0_RP-FR(:,:,3)
+                 result(:,:,4)=(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2.0_RP-FR(:,:,4)
+                 result(:,:,5)=(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2.0_RP-FR(:,:,5)
          CASE(1)
 
-                 result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2-FL(:,:,1)
-                 result(:,:,2)=(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2-FL(:,:,2)
-                 result(:,:,3)=(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2-FL(:,:,3)
-                 result(:,:,4)=(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2-FL(:,:,4)
-                 result(:,:,5)=(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2-FL(:,:,5)
+                 result(:,:,1)=(FL(:,:,1)+FR(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1)))/2.0_RP-FL(:,:,1)
+                 result(:,:,2)=(FL(:,:,2)+FR(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2)))/2.0_RP-FL(:,:,2)
+                 result(:,:,3)=(FL(:,:,3)+FR(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3)))/2.0_RP-FL(:,:,3)
+                 result(:,:,4)=(FL(:,:,4)+FR(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4)))/2.0_RP-FL(:,:,4)
+                 result(:,:,5)=(FL(:,:,5)+FR(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5)))/2.0_RP-FL(:,:,5)
        END SELECT
        CASE('PI')
          call calculateEulerRandFluxPI(uL,uR,dir,FPI)
@@ -349,10 +349,10 @@ contains
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine  calculateEulerRandFluxPI(u1,u2,dir,result)
-            implicit none 
+            implicit none
             REAL(KIND=RP), INTENT(IN), DIMENSION(:,:,:) :: u1,u2
-            INTEGER:: dir, n 
-            REAL(KIND=RP), INTENT(out), DIMENSION(:,:,:) :: result 
+            INTEGER:: dir, n
+            REAL(KIND=RP), INTENT(out), DIMENSION(:,:,:) :: result
             REAL(KIND=RP),DIMENSION(:,:),allocatable :: c1,c2,h1,h2,p1,p2
 
                 n=size(u1,dim=1)-1
@@ -403,12 +403,12 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  subroutine lambdaMax (uL,uR,dir,result)
          !Computes the max of the eigenvalues at every Interface
-        implicit none 
+        implicit none
         REAL(KIND=RP),dimension(:,:,:),intent(in)     :: uR, uL
-        INTEGER                         ,intent(in)     :: dir 
+        INTEGER                         ,intent(in)     :: dir
         REAL(KIND=RP),dimension(:,:),intent(OUT),allocatable   ::result
         REAL(KIND=RP),dimension(:,:),allocatable    :: pR,hR,cR,pL,hL,cL
-        REAL(KIND=RP),dimension(:,:,:),allocatable :: lambda 
+        REAL(KIND=RP),dimension(:,:,:),allocatable :: lambda
         INTEGER                         :: l,k,n
 
         n=size(uL,dim=1)-1
@@ -418,18 +418,18 @@ contains
         ALLOCATE(lambda(1:n+1,1:n+1,6))
         ALLOCATE(pR(1:n+1,1:n+1))
         ALLOCATE(hR(1:n+1,1:n+1))
-        ALLOCATE(cR(1:n+1,1:n+1)) 
+        ALLOCATE(cR(1:n+1,1:n+1))
         ALLOCATE(pL(1:n+1,1:n+1))
         ALLOCATE(hL(1:n+1,1:n+1))
         ALLOCATE(cL(1:n+1,1:n+1))
-        
-        pR=(gamma-1.0_RP)*(uR(:,:,5)-0.5_RP*(uR(:,:,2)**2+uR(:,:,3)**2+uR(:,:,4)**2)/uR(:,:,1)) 
+
+        pR=(gamma-1.0_RP)*(uR(:,:,5)-0.5_RP*(uR(:,:,2)**2+uR(:,:,3)**2+uR(:,:,4)**2)/uR(:,:,1))
         hR=(uR(:,:,5)+pR)/uR(:,:,1)
         cR=sqrt((gamma-1)*(hR-((uR(:,:,2)/uR(:,:,1))**2+(uR(:,:,3)/uR(:,:,1))**2+(uR(:,:,4)/uR(:,:,1))**2)/2))
         lambda(:,:,1)=uR(:,:,dir+1)/uR(:,:,1)
         lambda(:,:,2)=uR(:,:,dir+1)/uR(:,:,1)-cR
         lambda(:,:,3)=uR(:,:,dir+1)/uR(:,:,1)+cR
-        pL=(gamma-1.0_RP)*(uL(:,:,5)-0.5_RP*(uL(:,:,2)**2+uL(:,:,3)**2+uL(:,:,4)**2)/uL(:,:,1)) 
+        pL=(gamma-1.0_RP)*(uL(:,:,5)-0.5_RP*(uL(:,:,2)**2+uL(:,:,3)**2+uL(:,:,4)**2)/uL(:,:,1))
         hL=(uL(:,:,5)+pL)/uL(:,:,1)
         cL=sqrt((gamma-1)*(hL-((uL(:,:,2)/uL(:,:,1))**2+(uL(:,:,3)/uL(:,:,1))**2+(uL(:,:,4)/uL(:,:,1))**2)/2))
         lambda(:,:,4)=uL(:,:,dir+1)/uL(:,:,1)
@@ -443,7 +443,7 @@ contains
         result(l,k)=maxval(lambda(l,k,:))
         enddo
         enddo
-        
+
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine lambdaMaxGlobal(u,lambdamax)
