@@ -1,8 +1,8 @@
 program Driver
     use Zeitintegration
     implicit none
-    REAL(KIND=RP) :: t=0.0_rp,tend=1.0_RP,CFL=0.1,dt,a
-    INTEGER,parameter :: n=4,nq=10
+    REAL(KIND=RP) :: t=0.0_rp,tend=10.0_RP,CFL=0.4_RP,dt,a
+    INTEGER,parameter :: n=0,nq=4
     REAL(KIND=RP),Dimension(:,:,:,:,:,:,:),allocatable :: u,xyz
     REAL(KIND=RP),Dimension(:),allocatable :: xi,xl
     REAL(KIND=RP),Dimension(:,:),allocatable :: xin
@@ -15,31 +15,7 @@ program Driver
     Fehler=0.0_RP
     EOC=0.0_RP
     call Vorbereiten(n,nq,D)
-    call LegendreGaussLobattoNodesandWeights(n,xi,w)
-   !! Bestimme GL punkte in jeder Zelle
-    do k=0,nq-1
-    xl(k+1)=(k+1.0_rp/2)*dx
-    do i=1,n+1
-    xin(i,k+1)=xl(k+1)+dx/2*xi(i)
-    end do
-    end do
-  !! Bestimme alle punkte.  
-    do o=1,nq
-    do l=1,nq
-    do m=1,nq
-    do k=1,n+1
-    do j=1,n+1
-    do i=1,n+1
-    xyz(m,l,o,i,j,k,1)=xin(i,m)
-    xyz(m,l,o,i,j,k,2)=xin(j,l)
-    xyz(m,l,o,i,j,k,3)=xin(k,o)
-    enddo
-    enddo
-    enddo
-    enddo
-    enddo
-    enddo
-    call Initialcondition(xyz,u)
+    call Initialcondition(u)
     call lambdaMaxGlobal(u,a)
     dt=CFL/(3*a)*(dx/real(N+1,kind=RP))
 !-ffpe-trap=denormal,invalid,zero,overflow,underflow
@@ -57,6 +33,7 @@ program Driver
         !print*,u(1,1,1,1,:,:,1)
         t=t+dt
     end do
+    print*, 1
                 
 
 
