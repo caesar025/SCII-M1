@@ -33,11 +33,5 @@ program Driver
         !print*,u(1,1,1,1,:,:,1)
         t=t+dt
     end do
-    print*, 1
                 
-
-
-
-
-    
 end program Driver
