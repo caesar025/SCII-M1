@@ -1,20 +1,21 @@
 module Zeitintegration
     use Quadraturroutinen
-    REAL(KIND=RP),DIMENSION(:),allocatable      ::x,w,xmit,xges
-    REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable      ::xyz1
-    REAL(KIND=RP)                               ::gk=9.812_RP,dx,gamma=1.4_RP
+    REAL(KIND=RP),DIMENSION(:),ALLOCATABLE      ::x,w,xmit,xges
+    REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE      ::xyz
+    REAL(KIND=RP)                               ::gk=9.812_RP,dx,gamma=1.4_RP,tint
 contains
-    subroutine Vorbereiten(n,nq,Dval)
+    subroutine Vorbereiten(n,nq,Dval,t)
         implicit none
         INTEGER,INTENT(IN)      ::n,nq
         INTEGER                 ::l,m,o,k,i,j
-        REAL(KIND=RP),Dimension(:),allocatable :: xi,xl
-        REAL(KIND=RP),Dimension(:,:),allocatable :: xin
+        REAL(KIND=RP),INTENT(IN)                 ::t
+        REAL(KIND=RP),Dimension(:),ALLOCATABLE :: xi,xl
+        REAL(KIND=RP),Dimension(:,:),ALLOCATABLE :: xin
         REAL(KIND=RP),DIMENSION(1:n+1,1:n+1),INTENT(out)    :: Dval
         allocate(xi(1:n+1),xl(1:nq))
         allocate(xin(1:n+1,1:nq))
         allocate(x(1:n+1),w(1:n+1),xges(1:nq*(n+1)),xmit(1:nq+1))
-        allocate(xyz1(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,3))
+        allocate(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,3))
         call LegendreGaussLobattoNodesandWeights(N,x,w)
         call DifferentiationsmatrixBerechnen(x,Dval,N+1)
         dx=1.0_RP/real(nq,kind=RP)
@@ -38,15 +39,17 @@ contains
     do k=1,n+1
     do j=1,n+1
     do i=1,n+1
-    xyz1(m,l,o,i,j,k,1)=xin(i,m)
-    xyz1(m,l,o,i,j,k,2)=xin(j,l)
-    xyz1(m,l,o,i,j,k,3)=xin(k,o)
+    xyz(m,l,o,i,j,k,1)=xin(i,m)
+    xyz(m,l,o,i,j,k,2)=xin(j,l)
+    xyz(m,l,o,i,j,k,3)=xin(k,o)
     enddo
     enddo
     enddo
     enddo
     enddo
     enddo
+    !!! Speicher t intern 
+    tint=t
     end subroutine
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -54,11 +57,11 @@ contains
         !Operator aus Semidiskreterdarstellung
     function R(u,N,NQ,D) result(solution)
         implicit none
-        integer, intent(in) :: n,NQ
-        real(kind=RP), dimension(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution
-        real(kind=RP), intent(in), dimension(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)     :: u
-        REAL(KIND=RP),intent(in),dimension(:,:)                             :: D
-        REAL(KIND=RP),dimension(:,:,:,:,:,:,:),allocatable                  ::L1,l2,l3
+        integer, INTENT(IN) :: n,NQ
+        real(kind=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution
+        real(kind=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)     :: u
+        REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)                             :: D
+        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE                  ::L1,l2,l3
         call computeL(u,D,1,L1)
         call computeL(u,D,2,L2)
         call computeL(u,D,3,l3)
@@ -66,33 +69,31 @@ contains
 
     end function
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function Rmanu(u,N,NQ,D,t) result(solution)
+    function Rmanu(u,N,NQ,D) result(solution)
         implicit none
-        integer, intent(in) :: n,NQ
-        real(KIND=RP), intent(in) ::t
-        real(kind=RP), dimension(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution
-        real(kind=RP), dimension(:,:,:,:,:,:,:),allocatable                 ::res 
-        real(kind=RP), intent(in), dimension(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)     :: u
-        REAL(KIND=RP),intent(in),dimension(:,:)                             :: D
-        REAL(KIND=RP),dimension(:,:,:,:,:,:,:),allocatable                  ::L1,l2,l3
+        integer, INTENT(IN) :: n,NQ
+        real(kind=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution
+        real(kind=RP), DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE                 ::res 
+        real(kind=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)     :: u
+        REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)                             :: D
+        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE                  ::L1,l2,l3
         call computeL(u,D,1,L1)
         call computeL(u,D,2,L2)
         call computeL(u,D,3,l3)
-        call Residum(t,res)
+        call Residum(res)
         solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-0.25_RP*dx**2*l3)
         solution=solution+res
 
     end function
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine Residum (t,result)
+        subroutine Residum (result)
         implicit none
-        REAL(KIND=RP),INTENT(IN):: t
-        REAL(KIND=RP),INTENT(OUT),DIMENSION(:,:,:,:,:,:,:),allocatable::result
+        REAL(KIND=RP),INTENT(OUT),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE::result
         REAL(KIND=RP):: c1,c2,c3,c4,c5
         INTEGER::o,l,m,k,j,i,n,nq
-        nq=size(xyz1,dim=1)
-        n=size(xyz1,dim=4)-1
-        ALLOCATE(result(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:3))
+        nq=size(xyz,dim=1)
+        n=size(xyz,dim=4)-1
+        ALLOCATE(result(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5))
 
         c1=pi/10.0_RP
         c2=-1.0_RP/5.0_RP*pi+pi/20.0_rp*(1.0_rp+5.0_RP*gamma)
@@ -106,13 +107,13 @@ contains
          do k=1,n+1
          do j=1,n+1
          do i=1,n+1
-         result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))    
-         result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))&
-                 +c3*cos(2.0_RP*pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))    
+         result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))    
+         result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))&
+                 +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))    
          result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
          result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
-         result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))&
-                 +c5*cos(2.0_RP*pi*(xyz1(m,l,o,i,j,k,1)+xyz1(m,l,o,i,j,k,2)+xyz1(m,l,o,i,j,k,3)-2.0_RP*t))
+         result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))&
+                 +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))
          enddo
          enddo
          enddo
@@ -128,15 +129,15 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine computeL(u,D,dir,result)
         implicit none
-        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),intent(in)           ::u
-        INTEGER,intent(in)                                      ::dir
-        REAL(KIND=RP),DIMENSION(:,:),intent(in)                 ::D
-        !u dimensions:(nummer zelle x,zelle y,zelle z,x,y,z,variable)
-        REAL(KIND=RP),dimension(:,:,:,:,:,:,:),allocatable,intent(out)::result
+        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(IN)           ::u
+        INTEGER,INTENT(IN)                                      ::dir
+        REAL(KIND=RP),DIMENSION(:,:),INTENT(IN)                 ::D
+        !u DIMENSIONS:(nummer zelle x,zelle y,zelle z,x,y,z,variable)
+        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE,INTENT(out)::result
         !local Variables
         INTEGER                                             ::var,k,j,i,o,l,m,n,nq
-        REAL(KIND=RP),dimension(:,:),allocatable                        ::Fsharp
-        REAL(KIND=RP),dimension(:,:,:),allocatable                        ::FRand0,FRand1,uR,uL
+        REAL(KIND=RP),DIMENSION(:,:),ALLOCATABLE                        ::Fsharp
+        REAL(KIND=RP),DIMENSION(:,:,:),ALLOCATABLE                        ::FRand0,FRand1,uR,uL
         CHARACTER(len=2)                     ::whichflux='ST'
         nq=size(u,dim=1)
         n=size(u,dim=4)-1
@@ -264,12 +265,12 @@ contains
     !Subroutine gets the values of u and return the flux for the spcified direction
     !dir=1,2,3 stands for x,y,z direction
         implicit none
-        REAL(KIND=RP),dimension(:,:,:,:),intent(in)     :: u
-        INTEGER                         ,intent(in)     :: dir
-        REAL(KIND=RP),dimension(:,:,:,:),intent(out),allocatable    :: result
+        REAL(KIND=RP),DIMENSION(:,:,:,:),INTENT(IN)     :: u
+        INTEGER                         ,INTENT(IN)     :: dir
+        REAL(KIND=RP),DIMENSION(:,:,:,:),INTENT(out),ALLOCATABLE    :: result
         !local variables beyond here
         INTEGER                                         :: n
-        REAL(KIND=RP),dimension(:,:,:),allocatable    ::p
+        REAL(KIND=RP),DIMENSION(:,:,:),ALLOCATABLE    ::p
         n=size(u,dim=1)-1
         ALLOCATE(result(1:n+1,1:n+1,1:n+1,1:5))
         ALLOCATE(p(1:n+1,1:n+1,1:n+1))
@@ -301,14 +302,14 @@ contains
     subroutine computeFsharp(u1,u2,dir,whichflux,result)
     !Subroutine computes the Volume flux Fsharp
         implicit none
-        REAL(KIND=RP),intent(in) ,dimension(:)                       ::u1
-        REAL(KIND=RP),intent(in),dimension(:,:)           ::u2
-        CHARACTER(len=*),intent(in)                     ::whichflux
-        INTEGER         ,intent(in)                     ::dir
-        REAL(KIND=RP),intent(out),dimension(:,:),allocatable   :: result
+        REAL(KIND=RP),INTENT(IN) ,DIMENSION(:)                       ::u1
+        REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)           ::u2
+        CHARACTER(len=*),INTENT(IN)                     ::whichflux
+        INTEGER         ,INTENT(IN)                     ::dir
+        REAL(KIND=RP),INTENT(out),DIMENSION(:,:),ALLOCATABLE   :: result
         !local variables go beyond here
         INTEGER                                         ::n
-        REAL(KIND=RP),dimension(:),allocatable                   ::p2,c2,h2
+        REAL(KIND=RP),DIMENSION(:),ALLOCATABLE                   ::p2,c2,h2
         REAL(KIND=RP)                               ::p1,c1,h1
         n=size(u2,dim=1)-1
         allocate(result(1:n+1,1:5))
@@ -368,27 +369,38 @@ contains
                 end SELECT
         END SELECT
     end subroutine
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine Initialcondition(u)
         implicit none
-        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(INOUT),allocatable::u
-        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz1(:,:,:,:,:,:,1)+xyz1(:,:,:,:,:,:,2)+xyz1(:,:,:,:,:,:,3)))/10.0_rp
+        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(INOUT),ALLOCATABLE::u
+        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_rp
         u(:,:,:,:,:,:,2)=1.0_RP
         u(:,:,:,:,:,:,3)=1.0_RP
         u(:,:,:,:,:,:,4)=1.0_RP
         u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine computeSolution(u)
+        implicit none
+        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(INOUT),ALLOCATABLE::u
+        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)-2*tint))/10.0_rp
+        u(:,:,:,:,:,:,2)=1.0_RP
+        u(:,:,:,:,:,:,3)=1.0_RP
+        u(:,:,:,:,:,:,4)=1.0_RP
+        u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+    end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine computeLocalLaxFriedrich(uL,uR,dir,pos,whichflux,result)
     ! Compute local LaxFriedrich
     ! Returns Matrix with the localLaxFriedrich at every Interface point
          implicit none
          REAL(KIND=RP), INTENT(IN), DIMENSION(:,:,:) :: uL, uR
-         REAL(KIND=RP), INTENT(out), DIMENSION(:,:,:),allocatable:: result
+         REAL(KIND=RP), INTENT(out), DIMENSION(:,:,:),ALLOCATABLE:: result
          INTEGER, INTENT(IN):: dir,pos
-         REAL(KIND=RP), DIMENSION(:,:,:),allocatable :: FL,FR,FPI
-         REAL(KIND=RP), DIMENSION(:,:),allocatable :: lamMax
+         REAL(KIND=RP), DIMENSION(:,:,:),ALLOCATABLE :: FL,FR,FPI
+         REAL(KIND=RP), DIMENSION(:,:),ALLOCATABLE :: lamMax
          INTEGER :: n
-         CHARACTER(len=*),intent(in)                     ::whichflux
+         CHARACTER(len=*),INTENT(IN)                     ::whichflux
 
         n=size(uL,dim=1)-1
         ALLOCATE(result(1:n+1,1:n+1,5))
@@ -443,7 +455,7 @@ contains
             REAL(KIND=RP), INTENT(IN), DIMENSION(:,:,:) :: u1,u2
             INTEGER:: dir, n
             REAL(KIND=RP), INTENT(out), DIMENSION(:,:,:) :: result
-            REAL(KIND=RP),DIMENSION(:,:),allocatable :: c1,c2,h1,h2,p1,p2
+            REAL(KIND=RP),DIMENSION(:,:),ALLOCATABLE :: c1,c2,h1,h2,p1,p2
 
                 n=size(u1,dim=1)-1
                 ALLOCATE(c1(1:n+1,1:n+1))
@@ -494,11 +506,11 @@ contains
  subroutine lambdaMax (uL,uR,dir,result)
          !Computes the max of the eigenvalues at every Interface
         implicit none
-        REAL(KIND=RP),dimension(:,:,:),intent(in)     :: uR, uL
-        INTEGER                         ,intent(in)     :: dir
-        REAL(KIND=RP),dimension(:,:),intent(OUT),allocatable   ::result
-        REAL(KIND=RP),dimension(:,:),allocatable    :: pR,hR,cR,pL,hL,cL
-        REAL(KIND=RP),dimension(:,:,:),allocatable :: lambda
+        REAL(KIND=RP),DIMENSION(:,:,:),INTENT(IN)     :: uR, uL
+        INTEGER                         ,INTENT(IN)     :: dir
+        REAL(KIND=RP),DIMENSION(:,:),INTENT(OUT),ALLOCATABLE   ::result
+        REAL(KIND=RP),DIMENSION(:,:),ALLOCATABLE    :: pR,hR,cR,pL,hL,cL
+        REAL(KIND=RP),DIMENSION(:,:,:),ALLOCATABLE :: lambda
         INTEGER                         :: l,k,n
 
         n=size(uL,dim=1)-1
@@ -540,7 +552,7 @@ contains
     implicit none
         REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(IN)           ::u
         REAL(KIND=RP)                         ,INTENT(OUT)          ::lambdamax
-        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:),allocatable          ::p,c
+        REAL(KIND=RP),DIMENSION(:,:,:,:,:,:),ALLOCATABLE          ::p,c
         INTEGER                                                     ::n,nq
         !local variables beyond here
         nq=size(u,dim=1)
@@ -561,12 +573,12 @@ contains
         IMPLICIT NONE
     !Subroutine gets the values of u and return the flux for the spcified direction
     !dir=1,2,3 stands for x,y,z direction
-        REAL(KIND=RP),dimension(:,:,:),intent(in)     :: u
-        INTEGER                         ,intent(in)     :: dir
-        REAL(KIND=RP),dimension(:,:,:),intent(out),allocatable    :: result
+        REAL(KIND=RP),DIMENSION(:,:,:),INTENT(IN)     :: u
+        INTEGER                         ,INTENT(IN)     :: dir
+        REAL(KIND=RP),DIMENSION(:,:,:),INTENT(out),ALLOCATABLE    :: result
         !local variables beyond here
         INTEGER                                         :: n
-        REAL(KIND=RP),dimension(:,:),allocatable    ::p
+        REAL(KIND=RP),DIMENSION(:,:),ALLOCATABLE    ::p
         n=size(u,dim=1)-1
         ALLOCATE(result(1:n+1,1:n+1,5))
         ALLOCATE(p(1:n+1,1:n+1))
@@ -600,14 +612,14 @@ contains
         IMPLICIT NONE
         !ustar=bekannte Werte
         INTEGER,INTENT(IN)                                          :: numvar,n,nq
-        REAL(KIND=RP),intent(in),dimension(:,:)         :: Dval
+        REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)         :: Dval
         REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:(n+1),1:n+1,1:n+1,1:numvar)  :: ustar
         !local
         REAL(KIND=RP),DIMENSION(1:nq,1:nq,1:nq,1:(n+1),1:n+1,1:n+1,1:numvar)    :: g
         INTEGER                                                     :: step=1
         REAL(KIND=RP),DIMENSION(5)                                  :: a,b,c
         REAL(KIND=RP),INTENT(IN)                                    :: dt
-        g=R(ustar,n,nq,Dval)
+        g=Rmanu(ustar,n,nq,Dval)
         a(1)=0.0_RP
         b(1)=0.0_RP
         c(1)=1432997174477.0_RP/9575080441755.0_RP
@@ -624,10 +636,38 @@ contains
         b(5)=2802321613138.0_RP/2924317926251.0_RP
         c(5)=2277821191437.0_RP/14882151754819.0_RP
         do step=1,5
-            g=a(step)*g+R(ustar,n,nq,Dval)
+            g=a(step)*g+Rmanu(ustar,n,nq,Dval)
             ustar=ustar+c(step)*dt*g
         enddo
+        tint=tint+dt
     end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine computeError (u,usolution,result)
+    implicit none 
+    REAL(KIND=RP),INTENT(IN),DIMENSION(:,:,:,:,:,:,:)  :: u,usolution
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(5) :: result
+    result(1)=maxval(abs(u(:,:,:,:,:,:,1)-usolution(:,:,:,:,:,:,1)))
+    result(2)=maxval(abs(u(:,:,:,:,:,:,2)-usolution(:,:,:,:,:,:,2)))
+    result(3)=maxval(abs(u(:,:,:,:,:,:,3)-usolution(:,:,:,:,:,:,3)))
+    result(4)=maxval(abs(u(:,:,:,:,:,:,4)-usolution(:,:,:,:,:,:,4)))
+    result(5)=maxval(abs(u(:,:,:,:,:,:,5)-usolution(:,:,:,:,:,:,5)))
+
+    deallocate(xyz,x,w,xmit,xges)
+    end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine computeEOC (errors,n,nq,result)
+    implicit none
+    REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)  :: errors
+    REAL(KIND=RP),INTENT(IN),DIMENSION(:)  :: n,nq
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(:,:),ALLOCATABLE  :: result
+    INTEGER::k,anz
+    anz=size(errors,dim=2)
+    allocate(result(1:5,1:anz))
+        result(:,:)=0.0_RP
+        do k=1,anz
+        result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k)*(n+1),rp)/((n+1)*nq(k+1)))
+        end do
+
+    end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end module
