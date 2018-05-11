@@ -238,7 +238,7 @@ CONTAINS
 !      END SELECT
 !    END SUBROUTINE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    SUBROUTINE compute viscosFlux(u,dv,dir,n,result)
+    SUBROUTINE computeviscosFlux(u,dv,dir,n,result)
     !computes the viscos part of the flux analytically
         IMPLICIT NONE
         INTEGER       ,INTENT(IN)                               :: N,dir
