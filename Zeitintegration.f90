@@ -1,18 +1,17 @@
 MODULE Zeitintegration
   USE DGtoolbox
   REAL(KIND=RP),DIMENSION(:),ALLOCATABLE             :: x,w,xmit,xges
-  REAL(KIND=RP)                                      :: gk=9.812_RP,dx,gamma=1.4_RP,mu=0.001_RP,Pr=0.72_RP,Rkonst=287.058_RP,tint
+  REAL(KIND=RP)                                      :: gk=9.812_RP,dx,gamma=1.4_RP,mu=0.001_RP,Pr=0.72_RP,Rkonst=287.058_RP
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE :: xyz
 
 CONTAINS
   !
-  SUBROUTINE Vorbereiten(N,NQ,Dval,t)
+  SUBROUTINE Vorbereiten(N,NQ,Dval)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                         :: N,NQ
     REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:N+1) :: Dval
     REAL(KIND=RP),DIMENSION(:),ALLOCATABLE           :: xi,xl                 ! Hilfsvariablen
     REAL(KIND=RP),DIMENSION(:,:),ALLOCATABLE         :: xin                 ! Hilfsvariablen
-    REAL(KIND=RP),INTENT(IN)                         :: t                    ! Startzeit
     ! local variables
     INTEGER                                          :: l,m,o,k,i,j                           ! Laufvariablen
     !
@@ -53,7 +52,6 @@ CONTAINS
       ENDDO
     ENDDO
     !!! Speicher t intern 
-    tint=t
   END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !Operator aus Semidiskreterdarstellung
@@ -73,7 +71,7 @@ CONTAINS
     solution=8.0_RP/(dx**3)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2-(0.25_RP*dx**2)*L3)
   END FUNCTION
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  FUNCTION Rmanu(u,N,NQ,D,whichflux) result(solution)
+  FUNCTION Rmanu(u,N,NQ,D,t,whichflux) result(solution)
     ! Setze Rechteseite zusammen mit manufactuerd solution
     IMPLICIT NONE
     INTEGER, INTENT(IN)                                                        :: n,NQ
@@ -82,20 +80,22 @@ CONTAINS
     REAL(KIND=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5) :: u             ! U
     REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)                                    :: D                        ! Diff-Matrix
     CHARACTER(len=2),INTENT(IN)                                                :: whichflux
+    REAL(KIND=RP),INTENT(IN)                                                   :: t                    ! Startzeit
     REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
-    call Residuum(NQ,N,res)
+    call Residuum(NQ,N,t,res)
     solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-0.25_RP*dx**2*l3)
     solution=solution+res
 
   END FUNCTION
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE Residuum (NQ,N,result)
+  SUBROUTINE Residuum (NQ,N,t,result)
     ! Berechne Quellterme
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                        :: n,NQ
+    REAL(KIND=RP),INTENT(IN)                                        :: t                    ! Startzeit
     REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5) :: result                       ! Quellterme
     REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5               ! Hilfsvariablen
     INTEGER                                                         :: o,l,m,k,j,i
@@ -113,13 +113,13 @@ CONTAINS
           DO k=1,n+1
             DO j=1,n+1
               DO i=1,n+1
-                result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))    
-                result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))&
-                  +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))    
+                result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))    
+                result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
+                  +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))    
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
-                result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))&
-                  +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))
+                result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
+                  +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
               ENDDO
             ENDDO
           ENDDO
@@ -391,11 +391,12 @@ CONTAINS
     u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
   END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE computeSolution(u,NQ,N)
+  SUBROUTINE computeSolution(u,NQ,N,t)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
-    u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)-2*tint))/10.0_rp
+    REAL(KIND=RP),INTENT(IN)                                                :: t
+    u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)-2*t))/10.0_rp
     u(:,:,:,:,:,:,2)=1.0_RP
     u(:,:,:,:,:,:,3)=1.0_RP
     u(:,:,:,:,:,:,4)=1.0_RP
@@ -588,7 +589,7 @@ CONTAINS
     END SELECT
   END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE RungeKutta5explizit(ustar,nq,n,numvar,dt,Dval,whichflux)
+  SUBROUTINE RungeKutta5explizit(ustar,nq,n,numvar,dt,Dval,t,whichflux)
     IMPLICIT NONE
     !ustar=bekannte Werte
     INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq
@@ -599,25 +600,41 @@ CONTAINS
     REAL(KIND=RP),DIMENSION(1:nq,1:nq,1:nq,1:(N+1),1:N+1,1:N+1,1:numvar)    :: g
     INTEGER                                                                 :: step
     REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
-    REAL(KIND=RP),INTENT(IN)                                                :: dt
-    g=Rmanu(ustar,n,nq,Dval,whichflux)
-    a(1)=0.0_RP
-    b(1)=0.0_RP
-    c(1)=1432997174477.0_RP/9575080441755.0_RP
-    a(2)=-567301805773.0_RP/1357537059087.0_RP
-    b(2)=1432997174477.0_RP/9575080441755.0_RP
-    c(2)=5161836677717.0_RP/13612068292357.0_RP
-    a(3)=-2404267990393.0_RP/2016746695238.0_RP
-    b(3)=2526269341429.0_RP/6820363962896.0_RP
-    c(3)=1720146321549.0_RP/2090206949498.0_RP
-    a(4)=-3550918686646.0_RP/2091501179385.0_RP
-    b(4)=2006345519317.0_RP/3224310063776.0_RP
-    c(4)=3134564353537.0_RP/4481467310338.0_RP
-    a(5)=-1275806237668.0_RP/842570457699.0_RP
-    b(5)=2802321613138.0_RP/2924317926251.0_RP
-    c(5)=2277821191437.0_RP/14882151754819.0_RP
+    REAL(KIND=RP),INTENT(IN)                                                :: dt,t
+    g=Rmanu(ustar,n,nq,Dval,t,whichflux)
+    !a(1)=0.0_RP
+    !b(1)=0.0_RP
+    !c(1)=1432997174477.0_RP/9575080441755.0_RP
+    !a(2)=-567301805773.0_RP/1357537059087.0_RP
+    !b(2)=1432997174477.0_RP/9575080441755.0_RP
+    !c(2)=5161836677717.0_RP/13612068292357.0_RP
+    !a(3)=-2404267990393.0_RP/2016746695238.0_RP
+    !b(3)=2526269341429.0_RP/6820363962896.0_RP
+    !c(3)=1720146321549.0_RP/2090206949498.0_RP
+    !a(4)=-3550918686646.0_RP/2091501179385.0_RP
+    !b(4)=2006345519317.0_RP/3224310063776.0_RP
+    !c(4)=3134564353537.0_RP/4481467310338.0_RP
+    !a(5)=-1275806237668.0_RP/842570457699.0_RP
+    !b(5)=2802321613138.0_RP/2924317926251.0_RP
+    !c(5)=2277821191437.0_RP/14882151754819.0_RP
+
+
+
+
+    a=(/0.0_rp, -567301805773.0_rp/1357537059087.0_rp,&
+      -2404267990393.0_rp/2016746695238.0_rp, -3550918686646.0_rp/2091501179385.0_rp,&
+      -1275806237668.0_rp/842570457699.0_rp/)
+    b=(/0.0_rp, 1432997174477.0_rp/9575080441755.0_rp,&
+      2526269341429.0_rp/6820363962896.0_rp, 2006345519317.0_rp/3224310063776.0_rp,&
+      2802321613138.0_rp/2924317926251.0_rp /)
+    c=(/1432997174477.0_rp/9575080441755.0_rp, 5161836677717.0_rp/13612068292357.0_rp,&
+      1720146321549.0_rp/2090206949498.0_rp, 3134564353537.0_rp/4481467310338.0_rp,&
+      2277821191437.0_rp/14882151754819.0_rp /)
+
+
+
     DO step=1,5
-      g=a(step)*g+Rmanu(ustar,n,nq,Dval,whichflux)
+      g=a(step)*g+Rmanu(ustar,n,nq,Dval,t*b(step)*dt,whichflux)
       ustar=ustar+c(step)*dt*g
     ENDDO ! step
   END SUBROUTINE
