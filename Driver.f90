@@ -7,7 +7,7 @@
 PROGRAM Driver
   USE Zeitintegration
   IMPLICIT NONE
-  INTEGER,PARAMETER                                             :: N=4,NQ=10
+  INTEGER,PARAMETER                                             :: N=2,NQ=10
   REAL(KIND=RP)                                                 :: t=0.0_RP,tend=1.0_RP,CFL=0.1_RP,dt,a
   REAL(KIND=RP),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
   REAL(KIND=RP),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:3) :: xyz

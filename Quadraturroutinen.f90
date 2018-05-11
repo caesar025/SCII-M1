@@ -1,14 +1,27 @@
+!!
+!  These routines appear to be working as you probably used them in the past semesters of the DG course. But
+!  some of the loop structure is very weird and I have never seen them before in fortran. Often DO loops
+!  are created without an index to run over. I don't know how this works, perhaps some kind of implicit
+!  loop structure. I wouldn't recommend this as relying on the compiler to "be smart" on how to manage memory
+!  is very unreliable. Be very explicit on your loop bound and how you declare memory!! This will avoid weird
+!  bugs and possible segmentation faults when you move to the parallel version of the code. Sometimes when
+!  I compile the code it runs without producing NaN, but if I change the spacing in the loops and try to
+!  specify the loop bounds the code will NaN again. This points to memory not being handled properly
+!  I expect if you were to compile with an optimization flag, e..g -02, the code would break and NaN again
+!  I would suggest to rewrite these routines to explicitly state what vairable the DO loops use!
+!!
 module Quadraturroutinen
 use Diverses
 contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine LegendreGaussNodesAndWeights(N,x,w)
     implicit none
-        INTEGER,INTENT(IN)                                :: N
-    REAL(KIND=RP),INTENT(INOUT)                           :: x(0:N),w(0:N)
-    INTEGER                                               :: Boundary,j=0,nit=4,k=0
-    REAL(KIND=RP)                                         :: LN,LN1
-    REAL(KIND=RP)                                         :: delta,TOL=4*1e-16
+    INTEGER,INTENT(IN)          :: N
+    REAL(KIND=RP),INTENT(INOUT) :: x(0:N),w(0:N)
+    INTEGER                     :: Boundary,j=0,nit=4,k=0
+    REAL(KIND=RP)               :: LN,LN1
+    REAL(KIND=RP)               :: delta,TOL=4*1e-16
+!
     Boundary=ceiling((real(N,KIND=RP)+1.0_RP)/2.0_RP)-1
     if(N==0) then
     x(0)=0.0_RP
