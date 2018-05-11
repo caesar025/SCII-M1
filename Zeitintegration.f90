@@ -50,7 +50,7 @@
 MODULE Zeitintegration
     USE Quadraturroutinen
     REAL(KIND=RP),DIMENSION(:),ALLOCATABLE :: x,w,xmit,xges
-    REAL(KIND=RP)                          :: gk=9.812_RP,dx,gamma=1.4_RP
+    REAL(KIND=RP)                          :: gk=9.812_RP,dx,gamma=1.4_RP,mu=0.001_RP,Pr=0.72_RP,Rkonst=287.058_RP
 !
 CONTAINS
 !
@@ -238,6 +238,34 @@ CONTAINS
 !      END SELECT
 !    END SUBROUTINE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    SUBROUTINE compute viscosFlux(u,dv,dir,n,result)
+    !computes the viscos part of the flux analytically
+        IMPLICIT NONE
+        INTEGER       ,INTENT(IN)                               :: N,dir
+        REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)   :: u, dv
+        REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:n+1,1:5)   :: result
+        REAL(KIND=RP)             ,DIMENSION(1:N+1,1:N+1)       ::P
+        result(:,:,1)=0.0_RP
+        p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)*u(:,:,2)+u(:,:,3)*u(:,:,3)+u(:,:,4)*u(:,:,4))/u(:,:,1))
+        SELECT(dir)
+            CASE(1)
+                result(:,:,2)=mu*4.0_RP/3.0_RP*dv(:,:,1)
+                result(:,:,3)=mu*dv(:,:,1)
+                result(:,:,4)=mu*dv(:,:,1)
+                result(:,:,5)=mu*(dv(:,:,1)*(4.0_RP/3.0_RP*u(:,:,2)/u(:,:,1)+u(:,:,3)/u(:,:,1)+u(:,:,4)/u(:,:,1))+&
+                                p/(u(:,:,1)*Rkonst)
+            CASE(2)
+                result(:,:,3)=mu*4.0_RP/3.0_RP*dv(:,:,2)
+                result(:,:,2)=mu*dv(:,:,2)
+                result(:,:,4)=mu*dv(:,:,2)
+                result(:,:,5)=mu*(dv(:,:,2)*(4.0_RP/3.0_RP*u(:,:,3)/u(:,:,1)+u(:,:,2)/u(:,:,1)+u(:,:,4)/u(:,:,1))+&
+                                p/(u(:,:,1)*Rkonst)
+            CASE(3)
+                result(:,:,4)=mu*4.0_RP/3.0_RP*dv(:,:,3)
+                result(:,:,2)=mu*dv(:,:,3)
+                result(:,:,3)=mu*dv(:,:,3)
+                result(:,:,5)=mu*(dv(:,:,3)*(4.0_RP/3.0_RP*u(:,:,4)/u(:,:,1)+u(:,:,3)/u(:,:,1)+u(:,:,2)/u(:,:,1))+&
+                                p/(u(:,:,1)*Rkonst)
     SUBROUTINE computeFsharp(u1,u2,dir,whichflux,result,N)
     !SUBROUTINE computes the Volume flux Fsharp
       IMPLICIT NONE
