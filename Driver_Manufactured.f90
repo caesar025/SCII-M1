@@ -2,7 +2,7 @@ program Driver_Manufactured
     use Zeitintegration
     implicit none
     REAL(KIND=RP) :: t=0.0_rp,tend=1.0_RP,CFL=0.4_RP,dt,a
-    INTEGER,parameter :: n=0,anz=3
+    INTEGER,parameter :: n=0,anz=5
     REAL(KIND=RP),Dimension(:,:,:,:,:,:,:),allocatable :: u, usolution
     REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)    ::D
     real(kind=RP), dimension(1:5,1:anz) ::errors
