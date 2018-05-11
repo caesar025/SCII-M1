@@ -12,7 +12,7 @@ program Driver_Manufactured
   nq=2**(/ (I,I=start,start+anz-1) /)
   DO k=1,anz
     allocate(u(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5),usolution(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5))
-    call Vorbereiten(n,nq(k),D,t)
+    call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
     dt=CFL/(3*a)*(dx/real(N+1,KIND=RP))
@@ -27,12 +27,12 @@ program Driver_Manufactured
       call lambdaMaxGlobal(u,a,NQ(k),N)
       dt=CFL/(3*a)*(dx/real(N+1))
       IF(t+dt>tend) dt=tend-t
-      call RungeKutta5explizit(u,nq(k),n,5,dt,D,whichflux)
+      call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux)
       !print*,u(1,1,1,1,:,:,1)
       t=t+dt
     END DO
     ! Berechne Fehler und Loesung
-    call computeSolution(usolution,NQ(k),N) 
+    call computeSolution(usolution,NQ(k),N,t) 
     call computeError(u,usolution,NQ(k),N,errors(:,k)) 
     print*,errors(1,:)
     print*,errors(2,:)
