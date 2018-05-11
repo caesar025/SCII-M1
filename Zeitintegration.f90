@@ -50,18 +50,25 @@
 MODULE Zeitintegration
     USE Quadraturroutinen
     REAL(KIND=RP),DIMENSION(:),ALLOCATABLE :: x,w,xmit,xges
-    REAL(KIND=RP)                          :: gk=9.812_RP,dx,gamma=1.4_RP,mu=0.001_RP,Pr=0.72_RP,Rkonst=287.058_RP
+    REAL(KIND=RP)                          :: gk=9.812_RP,dx,gamma=1.4_RP,mu=0.001_RP,Pr=0.72_RP,Rkonst=287.058_RP,tint
+    REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE      ::xyz
 !
 CONTAINS
 !
-    SUBROUTINE Vorbereiten(N,NQ,Dval)
+    SUBROUTINE Vorbereiten(N,NQ,Dval,t)
       IMPLICIT NONE
       INTEGER      ,INTENT(IN)                         :: N,NQ
       REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:N+1) :: Dval
+      REAL(KIND=RP),Dimension(:),ALLOCATABLE :: xi,xl                 ! Hilfsvariablen 
+      REAL(KIND=RP),Dimension(:,:),ALLOCATABLE :: xin                 ! Hilfsvariablen 
+      REAL(KIND=RP),INTENT(IN)                 ::t                    ! Startzeit
 ! local variables
-      INTEGER :: i
+      INTEGER                 ::l,m,o,k,i,j                           ! Laufvariablen
 !
+      allocate(xi(1:n+1),xl(1:nq))
+      allocate(xin(1:n+1,1:nq))
       ALLOCATE(x(1:N+1),w(1:N+1),xges(1:NQ*(N+1)),xmit(1:NQ+1))
+      allocate(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:3))
       CALL LegendreGaussLobattoNodesandWeights(N,x,w)
       CALL DifferentiationsmatrixBerechnen(x,Dval,N+1)
       dx=1.0_RP/REAL(nq,kind=RP)
@@ -69,6 +76,33 @@ CONTAINS
       DO i=1,NQ
         xges((i-1)*(N+1)+1:i*(N+1))=xmit(i)+dx/2.0_RP*x
       ENDDO ! i
+
+    call LegendreGaussLobattoNodesandWeights(n,xi,w)
+   !! Bestimme GL punkte in jeder Zelle
+    do k=0,nq-1
+    xl(k+1)=(k+1.0_rp/2)*dx
+    do i=1,n+1
+    xin(i,k+1)=xl(k+1)+dx/2*xi(i)
+    end do
+    end do
+  !! Bestimme alle punkte.  
+    do o=1,nq
+    do l=1,nq
+    do m=1,nq
+    do k=1,n+1
+    do j=1,n+1
+    do i=1,n+1
+    xyz(m,l,o,i,j,k,1)=xin(i,m)
+    xyz(m,l,o,i,j,k,2)=xin(j,l)
+    xyz(m,l,o,i,j,k,3)=xin(k,o)
+    enddo
+    enddo
+    enddo
+    enddo
+    enddo
+    enddo
+    !!! Speicher t intern 
+    tint=t
     END SUBROUTINE
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !Operator aus Semidiskreterdarstellung
@@ -86,6 +120,65 @@ CONTAINS
       CALL computeL(u,D,3,L3,N,NQ)
       solution=8.0_RP/(dx**3)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2-(0.25_RP*dx**2)*L3)
     END FUNCTION
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function Rmanu(u,N,NQ,D) result(solution)
+        ! Setze Rechteseite zusammen mit manufactuerd solution
+        implicit none
+        integer, INTENT(IN) :: n,NQ
+        real(kind=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)                 :: solution    ! Rechte Seite
+        real(kind=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)::res                       ! Quellterme
+        real(kind=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)     :: u             ! U
+        REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)                             :: D                        ! Diff-Matrix
+        REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) ::L1,L2,L3
+      CALL computeL(u,D,1,L1,N,NQ)
+      CALL computeL(u,D,2,L2,N,NQ)
+      CALL computeL(u,D,3,L3,N,NQ)
+        call Residuum(NQ,N,res)
+        solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-0.25_RP*dx**2*l3)
+        solution=solution+res
+
+    end function
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine Residuum (NQ,N,result)
+        ! Berechne Quellterme
+        implicit none
+        integer, INTENT(IN) :: n,NQ
+        real(kind=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)::result                       ! Quellterme
+        REAL(KIND=RP):: c1,c2,c3,c4,c5                                         ! Hilfsvariablen
+        INTEGER::o,l,m,k,j,i
+        
+
+        c1=pi/10.0_RP
+        c2=-1.0_RP/5.0_RP*pi+pi/20.0_rp*(1.0_rp+5.0_RP*gamma)
+        c3=pi/100.0_RP*(gamma-1)
+        c4=(-16.0_RP*pi+pi*(9.0_RP+15.0_RP*gamma))/20.0_RP
+        c5=(3*pi*gamma-2*pi)/100.0_RP
+
+         do o=1,nq
+         do l=1,nq
+         do m=1,nq
+         do k=1,n+1
+         do j=1,n+1
+         do i=1,n+1
+         result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))    
+         result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))&
+                 +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))    
+         result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
+         result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
+         result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))&
+                 +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*tint))
+         enddo
+         enddo
+         enddo
+         enddo
+         enddo
+         enddo
+
+
+
+
+
+        end subroutine
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     SUBROUTINE computeL(u,D,dir,result,N,NQ)
       IMPLICIT NONE
@@ -247,25 +340,27 @@ CONTAINS
         REAL(KIND=RP)             ,DIMENSION(1:N+1,1:N+1)       ::P
         result(:,:,1)=0.0_RP
         p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)*u(:,:,2)+u(:,:,3)*u(:,:,3)+u(:,:,4)*u(:,:,4))/u(:,:,1))
-        SELECT(dir)
+        SELECT CASE(dir)
             CASE(1)
                 result(:,:,2)=mu*4.0_RP/3.0_RP*dv(:,:,1)
                 result(:,:,3)=mu*dv(:,:,1)
                 result(:,:,4)=mu*dv(:,:,1)
                 result(:,:,5)=mu*(dv(:,:,1)*(4.0_RP/3.0_RP*u(:,:,2)/u(:,:,1)+u(:,:,3)/u(:,:,1)+u(:,:,4)/u(:,:,1))+&
-                                p/(u(:,:,1)*Rkonst)
+                                p/(u(:,:,1)*Rkonst))
             CASE(2)
                 result(:,:,3)=mu*4.0_RP/3.0_RP*dv(:,:,2)
                 result(:,:,2)=mu*dv(:,:,2)
                 result(:,:,4)=mu*dv(:,:,2)
                 result(:,:,5)=mu*(dv(:,:,2)*(4.0_RP/3.0_RP*u(:,:,3)/u(:,:,1)+u(:,:,2)/u(:,:,1)+u(:,:,4)/u(:,:,1))+&
-                                p/(u(:,:,1)*Rkonst)
+                                p/(u(:,:,1)*Rkonst))
             CASE(3)
                 result(:,:,4)=mu*4.0_RP/3.0_RP*dv(:,:,3)
                 result(:,:,2)=mu*dv(:,:,3)
                 result(:,:,3)=mu*dv(:,:,3)
                 result(:,:,5)=mu*(dv(:,:,3)*(4.0_RP/3.0_RP*u(:,:,4)/u(:,:,1)+u(:,:,3)/u(:,:,1)+u(:,:,2)/u(:,:,1))+&
-                                p/(u(:,:,1)*Rkonst)
+                                p/(u(:,:,1)*Rkonst))
+      END SELECT
+    END SUBROUTINE
     SUBROUTINE computeFsharp(u1,u2,dir,whichflux,result,N)
     !SUBROUTINE computes the Volume flux Fsharp
       IMPLICIT NONE
@@ -332,10 +427,9 @@ CONTAINS
       END SELECT
     END SUBROUTINE
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    SUBROUTINE Initialcondition(xyz,u,NQ,N)
+    SUBROUTINE Initialcondition(u,NQ,N)
       IMPLICIT NONE
       INTEGER      ,INTENT(IN)                                                    :: NQ,N
-      REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: xyz
       REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
       u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
       u(:,:,:,:,:,:,2)=1.0_RP
@@ -344,6 +438,17 @@ CONTAINS
       u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
     END SUBROUTINE
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine computeSolution(u,NQ,N)
+        implicit none
+        INTEGER      ,INTENT(IN)                                                    :: NQ,N
+        REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
+        u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)-2*tint))/10.0_rp
+        u(:,:,:,:,:,:,2)=1.0_RP
+        u(:,:,:,:,:,:,3)=1.0_RP
+        u(:,:,:,:,:,:,4)=1.0_RP
+        u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+    end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     SUBROUTINE computeLocalLaxFriedrich(uL,uR,dir,pos,whichflux,result,N)
     ! Compute local LaxFriedrich
     ! Returns Matrix with the localLaxFriedrich at every Interface point
@@ -541,7 +646,7 @@ CONTAINS
       INTEGER                                                                 :: step
       REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
       REAL(KIND=RP),INTENT(IN)                                                :: dt
-      g=R(ustar,n,nq,Dval)
+      g=Rmanu(ustar,n,nq,Dval)
       a(1)=0.0_RP
       b(1)=0.0_RP
       c(1)=1432997174477.0_RP/9575080441755.0_RP
@@ -558,9 +663,38 @@ CONTAINS
       b(5)=2802321613138.0_RP/2924317926251.0_RP
       c(5)=2277821191437.0_RP/14882151754819.0_RP
       DO step=1,5
-        g=a(step)*g+R(ustar,n,nq,Dval)
+        g=a(step)*g+Rmanu(ustar,n,nq,Dval)
         ustar=ustar+c(step)*dt*g
       ENDDO ! step
     END SUBROUTINE
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine computeError (u,usolution,NQ,N,result)
+    implicit none 
+    INTEGER, INTENT(IN)                                                      :: NQ,N
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5) :: u,usolution
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(5) :: result
+    result(1)=maxval(abs(u(:,:,:,:,:,:,1)-usolution(:,:,:,:,:,:,1)))
+    result(2)=maxval(abs(u(:,:,:,:,:,:,2)-usolution(:,:,:,:,:,:,2)))
+    result(3)=maxval(abs(u(:,:,:,:,:,:,3)-usolution(:,:,:,:,:,:,3)))
+    result(4)=maxval(abs(u(:,:,:,:,:,:,4)-usolution(:,:,:,:,:,:,4)))
+    result(5)=maxval(abs(u(:,:,:,:,:,:,5)-usolution(:,:,:,:,:,:,5)))
+
+    deallocate(xyz,x,w,xmit,xges)
+    end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine computeEOC (errors,n,nq,result)
+    implicit none
+    REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)  :: errors
+    REAL(KIND=RP),INTENT(IN),DIMENSION(:)  :: n,nq
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(:,:),ALLOCATABLE  :: result
+    INTEGER::k,anz
+    anz=size(errors,dim=2)
+    allocate(result(1:5,1:anz))
+        result(:,:)=0.0_RP
+        do k=1,anz
+        result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k)*(n+1),rp)/((n+1)*nq(k+1)))
+        end do
+
+    end subroutine
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 END MODULE
