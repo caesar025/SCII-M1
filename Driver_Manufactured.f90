@@ -1,20 +1,21 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.4_RP,dt,a
-  INTEGER,parameter                                  :: n=1,anz=1
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.07_RP,dt,a
+  INTEGER,parameter                                  :: n=3,anz=3
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='PI'
-  REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors
+  CHARACTER(len=2)                                   :: whichflux='ST'
+  REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
-  INTEGER                                            :: l,m,o,k,i,j,start=3
+  INTEGER                                            :: l,m,o,k,i,j,start=1
   nq=2**(/ (I,I=start,start+anz-1) /)
   DO k=1,anz
     allocate(u(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5),usolution(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5))
     call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
+    print*, dx
     dt=CFL/(3*a)*(dx/real(N+1,KIND=RP))
     !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     DO while(tend-t>epsilon(dt))
@@ -34,6 +35,7 @@ program Driver_Manufactured
     ! Berechne Fehler und Loesung
     call computeSolution(usolution,NQ(k),N,t) 
     call computeError(u,usolution,NQ(k),N,errors(:,k)) 
+    print*, "FEHLER"
     print*,errors(1,:)
     print*,errors(2,:)
     print*,errors(3,:)
@@ -43,4 +45,11 @@ program Driver_Manufactured
     deallocate(u,usolution)
     t=0.0_RP
   END DO 
+  call computeEOC(errors,n,nq,anz,EOC)
+    print*, "EOC"
+    print*, EOC(1,:)
+    print*, EOC(2,:)
+    print*, EOC(3,:)
+    print*, EOC(4,:)
+    print*, EOC(5,:)
 end program Driver_Manufactured
