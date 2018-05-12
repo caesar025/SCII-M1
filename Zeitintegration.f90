@@ -634,7 +634,7 @@ CONTAINS
 
 
     DO step=1,5
-      g=a(step)*g+Rmanu(ustar,n,nq,Dval,t*b(step)*dt,whichflux)
+      g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux)
       ustar=ustar+c(step)*dt*g
     ENDDO ! step
   END SUBROUTINE
