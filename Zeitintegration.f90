@@ -21,7 +21,7 @@ CONTAINS
     allocate(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:3))
     CALL LegendreGaussLobattoNodesAndWeights(N,x,w)
     Dval= baryzdiffmatrix(x,n)
-    dx=1.0_RP/REAL(nq,KIND=RP)
+    dx=2.0_RP/REAL(nq,KIND=RP)
     CALL linspace(dx/2.0_RP,1.0_RP-dx/2.0_RP,NQ,xmit)
     DO i=1,NQ
       xges((i-1)*(N+1)+1:i*(N+1))=xmit(i)+dx/2.0_RP*x
@@ -30,7 +30,7 @@ CONTAINS
     CALL LegendreGaussLobattoNodesAndWeights(N,xi,w)
     !! Bestimme GL punkte in jeder Zelle
     DO k=0,nq-1
-      xl(k+1)=(k+1.0_rp/2)*dx
+      xl(k+1)=-1+(k+1.0_rp/2)*dx
       DO i=1,n+1
         xin(i,k+1)=xl(k+1)+dx/2*xi(i)
       END DO
@@ -86,8 +86,8 @@ CONTAINS
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
-    solution=8.0_RP/(dx**3)*(-0.25_RP*dx**2*l1-0.25_RP*dx**2*l2-0.25_RP*dx**2*l3)
-    solution=solution+res
+    solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
+    solution=solution!+res
 
   END FUNCTION
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -551,7 +551,9 @@ CONTAINS
     !! max from abs(eigenvalue)
     lambdamax=max(MAXVAL(ABS(u(:,:,:,:,:,:,2)/u(:,:,:,:,:,:,1)+c)),MAXVAL(ABS(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1)+c)),&
       MAXVAL(ABS(u(:,:,:,:,:,:,4)/u(:,:,:,:,:,:,1)+c)),MAXVAL(ABS(u(:,:,:,:,:,:,2)/u(:,:,:,:,:,:,1)-c)),&
-      MAXVAL(abs(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1)-c)),MAXVAL(ABS(u(:,:,:,:,:,:,4)/u(:,:,:,:,:,:,1)-c)))
+      MAXVAL(abs(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1)-c)),MAXVAL(ABS(u(:,:,:,:,:,:,4)/u(:,:,:,:,:,:,1)-c)),&
+      MAXVAL(ABS(u(:,:,:,:,:,:,2)/u(:,:,:,:,:,:,1))),MAXVAL(ABS(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1))),&
+      MAXVAL(ABS(u(:,:,:,:,:,:,4)/u(:,:,:,:,:,:,1))))
   END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE calculateEulerRandFlux(u,dir,result,N)
@@ -653,14 +655,13 @@ CONTAINS
     deallocate(xyz,x,w,xmit,xges)
   END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE computeEOC (errors,n,nq,result)
+  SUBROUTINE computeEOC (errors,n,nq,anz,result)
     IMPLICIT NONE
-    REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)  :: errors
-    REAL(KIND=RP),INTENT(IN),DIMENSION(:)  :: n,nq
-    REAL(KIND=RP),INTENT(OUT),DIMENSION(:,:),ALLOCATABLE  :: result
-    INTEGER::k,anz
-    anz=size(errors,dim=2)
-    allocate(result(1:5,1:anz))
+    INTEGER,INTENT(IN)                             :: n,anz
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:5,1:anz)  :: errors
+    INTEGER,INTENT(IN),DIMENSION(1:anz)      :: nq
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:5,1:anz) :: result
+    INTEGER                                        :: k
     result(:,:)=0.0_RP
     DO k=1,anz
       result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k)*(n+1),rp)/((n+1)*nq(k+1)))
