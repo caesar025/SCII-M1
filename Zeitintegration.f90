@@ -71,7 +71,7 @@ CONTAINS
     solution=8.0_RP/(dx**3)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2-(0.25_RP*dx**2)*L3)
   END FUNCTION
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  FUNCTION Rmanu(u,N,NQ,D,t,whichflux) result(solution)
+  FUNCTION Rmanu(u,N,NQ,D,t,whichflux,dt) result(solution)
     ! Setze Rechteseite zusammen mit manufactuerd solution
     IMPLICIT NONE
     INTEGER, INTENT(IN)                                                        :: n,NQ
@@ -80,14 +80,14 @@ CONTAINS
     REAL(KIND=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5) :: u             ! U
     REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)                                    :: D                        ! Diff-Matrix
     CHARACTER(len=2),INTENT(IN)                                                :: whichflux
-    REAL(KIND=RP),INTENT(IN)                                                   :: t                    ! Startzeit
+    REAL(KIND=RP),INTENT(IN)                                                   :: t,dt                    ! Startzeit,zeitschritt
     REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
     solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
-    solution=solution!+res
+    solution=solution+dt*res
 
   END FUNCTION
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -603,7 +603,7 @@ CONTAINS
     INTEGER                                                                 :: step
     REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
     REAL(KIND=RP),INTENT(IN)                                                :: dt,t
-    g=Rmanu(ustar,n,nq,Dval,t,whichflux)
+    g=Rmanu(ustar,n,nq,Dval,t,whichflux,dt)
     !a(1)=0.0_RP
     !b(1)=0.0_RP
     !c(1)=1432997174477.0_RP/9575080441755.0_RP
@@ -636,7 +636,7 @@ CONTAINS
 
 
     DO step=1,5
-      g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux)
+      g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux,b(step)*dt)
       ustar=ustar+c(step)*dt*g
     ENDDO ! step
   END SUBROUTINE
@@ -663,7 +663,7 @@ CONTAINS
     REAL(KIND=RP),INTENT(OUT),DIMENSION(1:5,1:anz) :: result
     INTEGER                                        :: k
     result(:,:)=0.0_RP
-    DO k=1,anz
+    DO k=1,anz-1
       result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k)*(n+1),rp)/((n+1)*nq(k+1)))
     END DO
 
