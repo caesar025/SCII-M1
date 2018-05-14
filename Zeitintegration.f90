@@ -126,11 +126,6 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
-
-
-
-
-
   END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeL(u,D,dir,result,N,NQ,whichflux)
@@ -156,7 +151,7 @@ CONTAINS
                 DO i=1,N+1
                   CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp,N)
                   DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=2.0_RP*DOt_product(D(i,:),Fsharp(:,var))
+                    result(m,l,o,i,j,k,:)=2.0_RP*dot_product(D(i,:),Fsharp(:,var))
                   ENDDO ! var
                 ENDDO ! i
               ENDDO ! j
@@ -439,11 +434,11 @@ CONTAINS
       CALL lambdaMax(uL,uR,dir,lamMax,N)
       SELECT CASE(pos)
       CASE(0)
-        result(:,:,1)=FPI(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1))/2-FR(:,:,1)
-        result(:,:,2)=FPI(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2))/2-FR(:,:,2)
-        result(:,:,3)=FPI(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3))/2-FR(:,:,3)
-        result(:,:,4)=FPI(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4))/2-FR(:,:,4)
-        result(:,:,5)=FPI(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5))/2-FR(:,:,5)
+        result(:,:,1)=FPI(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1))/2.0_RP-FR(:,:,1)
+        result(:,:,2)=FPI(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2))/2.0_RP-FR(:,:,2)
+        result(:,:,3)=FPI(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3))/2.0_RP-FR(:,:,3)
+        result(:,:,4)=FPI(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4))/2.0_RP-FR(:,:,4)
+        result(:,:,5)=FPI(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5))/2.0_RP-FR(:,:,5)
       CASE(1)
         result(:,:,1)=FPI(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1))/2-FL(:,:,1)
         result(:,:,2)=FPI(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2))/2-FL(:,:,2)
@@ -566,7 +561,7 @@ CONTAINS
     !local variables beyond here
     REAL(KIND=RP),DIMENSION(1:N+1,1:N+1) :: p
     !
-    p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)**2+u(:,:,3)**2+u(:,:,4)**2)/u(:,:,1))
+    p=(gamma-1.0_RP)*(u(:,:,5)  -0.5_RP*(u(:,:,2)*u(:,:,2)    +u(:,:,3)*u(:,:,3)    +u(:,:,4)*u(:,:,4))    /u(:,:,1)  )
     SELECT CASE (dir)
     CASE(1)
       result(:,:,1)=u(:,:,2)
@@ -662,9 +657,9 @@ CONTAINS
     INTEGER,INTENT(IN),DIMENSION(1:anz)      :: nq
     REAL(KIND=RP),INTENT(OUT),DIMENSION(1:5,1:anz) :: result
     INTEGER                                        :: k
-    result(:,:)=0.0_RP
+    result=0.0_RP
     DO k=1,anz-1
-      result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k)*(n+1),rp)/((n+1)*nq(k+1)))
+      result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k),rp)/(nq(k+1)))
     END DO
 
   END SUBROUTINE
