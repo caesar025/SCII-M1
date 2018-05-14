@@ -151,7 +151,7 @@ CONTAINS
                 DO i=1,N+1
                   CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp,N)
                   DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,:)=2.0_RP*dot_product(D(i,:),Fsharp(:,var))
+                    result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(i,:),Fsharp(:,var))
                   ENDDO ! var
                 ENDDO ! i
               ENDDO ! j
