@@ -1,8 +1,8 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.07_RP,dt,a
-  INTEGER,parameter                                  :: n=3,anz=3
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.04_RP,dt,a
+  INTEGER,parameter                                  :: n=1,anz=2
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
   CHARACTER(len=2)                                   :: whichflux='PI'
@@ -33,8 +33,8 @@ program Driver_Manufactured
       t=t+dt
     END DO
     ! Berechne Fehler und Loesung
-    call computeSolution(usolution,NQ(k),N,t) 
-    call computeError(u,usolution,NQ(k),N,errors(:,k)) 
+    call computeSolution(usolution,NQ(k),N,t)
+    call computeError(u,usolution,NQ(k),N,errors(:,k))
     print*, "FEHLER"
     print*,errors(1,:)
     print*,errors(2,:)
@@ -44,7 +44,7 @@ program Driver_Manufactured
     ! Setzte alles wieder auf 0
     deallocate(u,usolution)
     t=0.0_RP
-  END DO 
+  END DO
   call computeEOC(errors,n,nq,anz,EOC)
     print*, "EOC"
     print*, EOC(1,:)
