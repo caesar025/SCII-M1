@@ -46,10 +46,10 @@ program Driver_Manufactured
     t=0.0_RP
   END DO
   call computeEOC(errors,n,nq,anz,EOC)
-    print*, "EOC"
-    print*, EOC(1,:)
-    print*, EOC(2,:)
-    print*, EOC(3,:)
-    print*, EOC(4,:)
-    print*, EOC(5,:)
+  print*, "EOC"
+  print*, EOC(1,:)
+  print*, EOC(2,:)
+  print*, EOC(3,:)
+  print*, EOC(4,:)
+  print*, EOC(5,:)
 end program Driver_Manufactured
