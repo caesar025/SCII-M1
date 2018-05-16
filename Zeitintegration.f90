@@ -30,9 +30,9 @@ CONTAINS
     CALL LegendreGaussLobattoNodesAndWeights(N,xi,w)
     !! Bestimme GL punkte in jeder Zelle
     DO k=0,nq-1
-      xl(k+1)=-1+(k+1.0_rp/2)*dx
+      xl(k+1)=-1+(k+1.0_rp/2.0_RP)*dx
       DO i=1,n+1
-        xin(i,k+1)=xl(k+1)+dx/2*xi(i)
+        xin(i,k+1)=xl(k+1)+dx/2.0_RP*xi(i)
       END DO
     END DO
     !! Bestimme alle punkte.
@@ -51,7 +51,7 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
-    !print*, xyz(1,1,1,1,1,50,:)
+    !print*, xyz(1,2,1,1,:,1,2)
     !stop
     !!! Speicher t intern
   END SUBROUTINE Vorbereiten
@@ -81,7 +81,7 @@ CONTAINS
     REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)           :: solution    ! Rechte Seite
     REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)           :: res                       ! Quellterme
     REAL(KIND=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5) :: u             ! U
-    REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)                                    :: D                        ! Diff-Matrix
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:N+1,1:N+1)                                    :: D                        ! Diff-Matrix
     CHARACTER(len=2),INTENT(IN)                                                :: whichflux
     REAL(KIND=RP),INTENT(IN)                                                   :: t,dt                    ! Startzeit,zeitschritt
     REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3
@@ -90,7 +90,7 @@ CONTAINS
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
     solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
-    solution=solution!+res !dt*res noch mal ueberpruefen !!!!
+    solution=solution+res !dt*res noch mal ueberpruefen !!!!
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Residuum (NQ,N,t,result)
@@ -281,22 +281,23 @@ CONTAINS
   !      END SELECT
   !    END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE computeviscosFlux(u,dv,dir,n,result)
+  SUBROUTINE computeviscosFlux(u,dv1,dv2,dv3,dir,n,result)
     !computes the viscos part of the flux analytically
     IMPLICIT NONE
     INTEGER       ,INTENT(IN)                               :: N,dir
-    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)   :: u, dv
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)   :: u
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:3)   :: dv1,dv2,dv3
     REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:n+1,1:5)   :: result
     REAL(KIND=RP)             ,DIMENSION(1:N+1,1:N+1)       ::P
     result(:,:,1)=0.0_RP
     p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)*u(:,:,2)+u(:,:,3)*u(:,:,3)+u(:,:,4)*u(:,:,4))/u(:,:,1))
     SELECT CASE(dir)
     CASE(1)
-      result(:,:,2)=mu*4.0_RP/3.0_RP*dv(:,:,1)
-      result(:,:,3)=mu*dv(:,:,1)
-      result(:,:,4)=mu*dv(:,:,1)
-      result(:,:,5)=mu*(dv(:,:,1)*(4.0_RP/3.0_RP*u(:,:,2)/u(:,:,1)+u(:,:,3)/u(:,:,1)+u(:,:,4)/u(:,:,1))+&
-        p/(u(:,:,1)*Rkonst))
+      result(:,:,2)=mu*(2*dv1(:,:,1)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
+      result(:,:,3)=mu*(dv1(:,:,2)+dv2(:,:,1))
+      result(:,:,4)=mu*(dv1(:,:,3)+dv3(:,:,1))
+      result(:,:,5)=mu*(u(:,:,2)/u(:,:,1)*(2.0_rp*dv2(:,:,2)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
+                    u(:,:,3)/u(:,:,1)*(dv2(:,:,1)+dv1(:,:,2))+u(:,:,4)/u(:,:,1)*(dv3(:,:,1)+dv1(:,:,3)))+mu/(Pr*Rkonst)*dTemp(:,:,1)
     CASE(2)
       result(:,:,3)=mu*4.0_RP/3.0_RP*dv(:,:,2)
       result(:,:,2)=mu*dv(:,:,2)
@@ -655,7 +656,7 @@ CONTAINS
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeEOC (errors,n,nq,anz,result)
     IMPLICIT NONE
-    INTEGER,INTENT(IN)                             :: n,anz
+    INTEGER,INTENT(IN)                             :: anz,n
     REAL(KIND=RP),INTENT(IN),DIMENSION(1:5,1:anz)  :: errors
     INTEGER,INTENT(IN),DIMENSION(1:anz)            :: nq
     REAL(KIND=RP),INTENT(OUT),DIMENSION(1:5,1:anz) :: result
