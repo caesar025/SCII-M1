@@ -38,13 +38,13 @@ CONTAINS
     !! Bestimme alle punkte.
     DO o=1,nq
       DO l=1,nq
-        DO m=1,nq
-          DO k=1,n+1
+        DO m=1,1
+          DO k=1,1
             DO j=1,n+1
               DO i=1,n+1
                 xyz(m,l,o,i,j,k,1)=xin(i,m)
                 xyz(m,l,o,i,j,k,2)=xin(j,l)
-                xyz(m,l,o,i,j,k,3)=xin(k,o)
+                xyz(m,l,o,i,j,k,3)=0.0_rp
               ENDDO
             ENDDO
           ENDDO
@@ -60,36 +60,35 @@ CONTAINS
   FUNCTION R(u,N,NQ,D,whichflux) result(solution)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                 :: N,NQ
-    REAL(KIND=RP),INTENT(IN),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: u
     REAL(KIND=RP),INTENT(IN),DIMENSION(1:N+1,1:N+1)                          :: D
-    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: solution
+    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: solution
     CHARACTER(len=2),INTENT(IN)                                              :: whichflux
     ! local
-    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) ::L1,L2,L3
+    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) ::L1,L2,L3
     !
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
-    CALL computeL(u,D,3,L3,N,NQ,whichflux)
-    solution=8.0_RP/(dx**3)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2-(0.25_RP*dx**2)*L3)
+   
+    solution=8.0_RP/(dx**2)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2)
   END FUNCTION R
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   FUNCTION Rmanu(u,N,NQ,D,t,whichflux,dt) result(solution)
     ! Setze Rechteseite zusammen mit manufactuerd solution
     IMPLICIT NONE
-    INTEGER, INTENT(IN)                                                        :: n,NQ
-    REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)           :: solution    ! Rechte Seite
-    REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)           :: res                       ! Quellterme
-    REAL(KIND=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5) :: u             ! U
-    REAL(KIND=RP),INTENT(IN),DIMENSION(1:N+1,1:N+1)                                    :: D                        ! Diff-Matrix
-    CHARACTER(len=2),INTENT(IN)                                                :: whichflux
-    REAL(KIND=RP),INTENT(IN)                                                   :: t,dt                    ! Startzeit,zeitschritt
-    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3
+    INTEGER, INTENT(IN)                                                     :: n,NQ
+    REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:1,1:n+1,1:(N+1),1:1,1:5)           :: solution    ! Rechte Seite
+    REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:1,1:n+1,1:(N+1),1:1,1:5)           :: res                       ! Quellterme
+    REAL(KIND=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:1,1:n+1,1:n+1,1:1,1:5) :: u             ! U
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:N+1,1:N+1)                         :: D                        ! Diff-Matrix
+    CHARACTER(len=2),INTENT(IN)                                             :: whichflux
+    REAL(KIND=RP),INTENT(IN)                                                :: t,dt                    ! Startzeit,zeitschritt
+    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5)   :: L1,L2,L3
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
-    CALL computeL(u,D,3,L3,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
-    solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
+    solution=8.0_RP/(dx**2)*(-0.5_RP*dx*l1-0.5_RP*dx*l2)
     solution=solution+res !dt*res noch mal ueberpruefen !!!!
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -98,7 +97,7 @@ CONTAINS
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                        :: n,NQ
     REAL(KIND=RP),INTENT(IN)                                        :: t                    ! Startzeit
-    REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5) :: result                       ! Quellterme
+    REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:1,1:n+1,1:(N+1),1:1,1:5) :: result                       ! Quellterme
     REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5               ! Hilfsvariablen
     INTEGER                                                         :: o,l,m,k,j,i
 
@@ -109,17 +108,17 @@ CONTAINS
     c4=(-16.0_RP*pi+pi*(9.0_RP+15.0_RP*gamma))/20.0_RP
     c5=(3*pi*gamma-2*pi)/100.0_RP
 
-    DO o=1,nq
+    DO o=1,1
       DO l=1,nq
         DO m=1,nq
-          DO k=1,n+1
+          DO k=1,1
             DO j=1,n+1
               DO i=1,n+1
                 result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
                 result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
                   +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
-                result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
+                result(m,l,o,i,j,k,4)=0.0_rp
                 result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
                   +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
               ENDDO
@@ -132,23 +131,23 @@ CONTAINS
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeL(u,D,dir,result,N,NQ,whichflux)
     IMPLICIT NONE
-    INTEGER      ,INTENT(IN)                                                  :: N,NQ
-    INTEGER      ,INTENT(IN)                                                  :: dir
-    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
-    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:N+1)                          :: D
-    CHARACTER(len=2),INTENT(IN)                                               :: whichflux
+    INTEGER      ,INTENT(IN)                                               :: N,NQ
+    INTEGER      ,INTENT(IN)                                               :: dir
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: u
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:N+1)                       :: D
+    CHARACTER(len=2),INTENT(IN)                                            :: whichflux
     !u DIMENSIONs:(nummer zelle x,zelle y,zelle z,x,y,z,variable)
-    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: result
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: result
     !local Variables
-    INTEGER                                  :: var,k,j,i,o,l,m
-    REAL(KIND=RP),DIMENSION(1:N+1,1:5)       :: Fsharp
-    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1,1:5) :: FRand0,FRand1,uR,uL
+    INTEGER                                :: var,k,j,i,o,l,m
+    REAL(KIND=RP),DIMENSION(1:N+1,1:5)     :: Fsharp
+    REAL(KIND=RP),DIMENSION(1:N+1,1:1,1:5) :: FRand0,FRand1,uR,uL
     SELECT CASE(dir)
     CASE(1)
-      DO o=1,NQ
+      DO o=1,1
         DO l=1,NQ
           DO m=1,NQ
-            DO k=1,N+1
+            DO k=1,1
               DO j=1,N+1
                 DO i=1,N+1
                   CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp,N)
@@ -177,10 +176,10 @@ CONTAINS
         ENDDO ! l
       ENDDO ! o
     CASE(2)
-      DO o=1,NQ
+      DO o=1,1
         DO l=1,NQ
           DO m=1,NQ
-            DO k=1,N+1
+            DO k=1,1
               DO j=1,N+1
                 DO i=1,N+1
                   CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,whichflux,Fsharp,N)
@@ -208,38 +207,38 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-    CASE(3)
-      DO o=1,NQ
-        DO l=1,NQ
-          DO m=1,NQ
-            DO k=1,N+1
-              DO j=1,N+1
-                DO i=1,N+1
-                  CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,whichflux,Fsharp,N)
-                  DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(k,:),Fsharp(:,var))
-                  ENDDO ! var
-                ENDDO ! i
-              ENDDO ! j
-            ENDDO ! k
-            !Randbedingungen
-            IF (o==1) THEN
-              uL=u(m,l,nq,:,:,N+1,:)
-            ELSE
-              uL=u(m,l,o-1,:,:,N+1,:)
-            ENDIF
-            IF (o==nq) THEN
-              uR=u(m,l,1,:,:,1,:)
-            ELSE
-              uR=u(m,l,o+1,:,:,1,:)
-            ENDIF
-            CALL computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,whichflux,FRand0,N)
-            CALL computeLocalLaxFriedrich(u(m,l,o,:,:,N+1,:),uR,dir,1,whichflux,FRand1,N)
-            result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-FRand0
-            result(m,l,o,:,:,N+1,:)=result(m,l,o,:,:,N+1,:)+FRand1
-          ENDDO ! m
-        ENDDO ! l
-      ENDDO ! o
+   ! CASE(3)
+   !   DO o=1,NQ
+   !     DO l=1,NQ
+   !       DO m=1,NQ
+   !         DO k=1,N+1
+   !           DO j=1,N+1
+   !             DO i=1,N+1
+   !               CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,whichflux,Fsharp,N)
+   !               DO var=1,5 !! besser
+   !                 result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(k,:),Fsharp(:,var))
+   !               ENDDO ! var
+   !             ENDDO ! i
+   !           ENDDO ! j
+   !         ENDDO ! k
+   !         !Randbedingungen
+   !         IF (o==1) THEN
+   !           uL=u(m,l,nq,:,:,N+1,:)
+   !         ELSE
+   !           uL=u(m,l,o-1,:,:,N+1,:)
+   !         ENDIF
+   !         IF (o==nq) THEN
+   !           uR=u(m,l,1,:,:,1,:)
+   !         ELSE
+   !           uR=u(m,l,o+1,:,:,1,:)
+   !         ENDIF
+   !         CALL computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,whichflux,FRand0,N)
+   !         CALL computeLocalLaxFriedrich(u(m,l,o,:,:,N+1,:),uR,dir,1,whichflux,FRand1,N)
+   !         result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-FRand0
+   !         result(m,l,o,:,:,N+1,:)=result(m,l,o,:,:,N+1,:)+FRand1
+   !       ENDDO ! m
+   !     ENDDO ! l
+   !   ENDDO ! o
     END SELECT
   END SUBROUTINE computeL
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -370,23 +369,23 @@ CONTAINS
   SUBROUTINE Initialcondition(u,NQ,N)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
-    REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
+    REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: u
     u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
     u(:,:,:,:,:,:,2)=1.0_RP*u(:,:,:,:,:,:,1)
     u(:,:,:,:,:,:,3)=1.0_RP*u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,4)=1.0_RP*u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,4)=0.0_rp
     u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
   END SUBROUTINE Initialcondition
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeSolution(u,NQ,N,t)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
-    REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
+    REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: u
     REAL(KIND=RP),INTENT(IN)                                                    :: t
     u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)-2*t))/10.0_rp
     u(:,:,:,:,:,:,2)=1.0_RP*u(:,:,:,:,:,:,1)
     u(:,:,:,:,:,:,3)=1.0_RP*u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,4)=1.0_RP*u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,4)=0.0_RP
     u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
   END SUBROUTINE computeSolution
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -396,11 +395,11 @@ CONTAINS
     IMPLICIT NONE
     INTEGER         ,INTENT(IN)                             :: N,dir,pos
     CHARACTER(len=2),INTENT(IN)                             :: whichflux
-    REAL(KIND=RP)   ,INTENT(IN) ,DIMENSION(1:N+1,1:N+1,1:5) :: uL,uR
-    REAL(KIND=RP)   ,INTENT(OUT),DIMENSION(1:N+1,1:N+1,1:5) :: result
+    REAL(KIND=RP)   ,INTENT(IN) ,DIMENSION(1:N+1,1:1,1:5) :: uL,uR
+    REAL(KIND=RP)   ,INTENT(OUT),DIMENSION(1:N+1,1:1,1:5) :: result
     ! local
-    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1,1:5) :: FL,FR,FPI
-    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1)     :: lamMax
+    REAL(KIND=RP),DIMENSION(1:N+1,1:1,1:5) :: FL,FR,FPI
+    REAL(KIND=RP),DIMENSION(1:N+1,1:1)     :: lamMax
     CALL calculateEulerRandFlux(uL,dir,FL,N)
     CALL calculateEulerRandFlux(uR,dir,FR,N)
     SELECT CASE(whichflux)
@@ -444,10 +443,10 @@ CONTAINS
   SUBROUTINE  calculateEulerRandFluxPI(u1,u2,dir,result,N)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                             :: N,dir
-    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:N+1,1:5) :: u1,u2
-    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:N+1,1:5) :: result
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:1,1:5) :: u1,u2
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:1,1:5) :: result
     ! local
-    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1) :: h1,h2,p1,p2
+    REAL(KIND=RP),DIMENSION(1:N+1,1:1) :: h1,h2,p1,p2
     !
     ! Pirozzoli
     p1=(gamma-1.0_RP)*(u1(:,:,5)  -0.5_RP*(u1(:,:,2)*u1(:,:,2)    +u1(:,:,3)*u1(:,:,3)    +u1(:,:,4)*u1(:,:,4))    /u1(:,:,1)  )
@@ -480,13 +479,13 @@ CONTAINS
   SUBROUTINE lambdaMax(uL,uR,dir,result,N)
     !Computes the max of the eigenvalues at every Interface
     IMPLICIT NONE
-    INTEGER      ,INTENT(IN)                             :: dir,N
-    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:N+1,1:5) :: uR,uL
-    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:N+1)     :: result
+    INTEGER      ,INTENT(IN)                           :: dir,N
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:1,1:5) :: uR,uL
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:1)     :: result
     ! local variables
-    INTEGER                                  :: l,k
-    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1)     :: pR,hR,cR,pL,hL,cL
-    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1,1:6) :: lambda
+    INTEGER                                            :: l,k
+    REAL(KIND=RP),DIMENSION(1:N+1,1:1)                 :: pR,hR,cR,pL,hL,cL
+    REAL(KIND=RP),DIMENSION(1:N+1,1:1,1:6)             :: lambda
     !
     pR=(gamma-1.0_RP)*(uR(:,:,5)-0.5_RP*(uR(:,:,2)**2+uR(:,:,3)**2+uR(:,:,4)**2)/uR(:,:,1))
     ! h = e + p/rho = (rho e + p)/rho = (u(5)+p)/u(1)
@@ -510,7 +509,7 @@ CONTAINS
     !
     lambda=ABS(lambda)
     DO l=1,N+1
-      DO k=1,N+1
+      DO k=1,1
         result(l,k)=MAXVAL(lambda(l,k,:))
       ENDDO ! k
     ENDDO ! l
@@ -521,10 +520,10 @@ CONTAINS
     !computes the max eigenvalue glabally for the timestep
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                 :: NQ,N
-    REAL(KIND=RP),INTENT(IN),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: u
     REAL(KIND=RP),INTENT(OUT)                                                :: lambdamax
     ! local variables
-    REAL(KIND=RP),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1) :: p,c
+    REAL(KIND=RP),DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1) :: p,c
     !
     p=(gamma-1.0_RP)*(u(:,:,:,:,:,:,5)-0.5_RP*(u(:,:,:,:,:,:,2)**2+u(:,:,:,:,:,:,3)**2+u(:,:,:,:,:,:,4)**2)/u(:,:,:,:,:,:,1))
     if (any(gamma*p/u(:,:,:,:,:,:,1)<0)) then
@@ -544,10 +543,10 @@ CONTAINS
     !SUBROUTINE gets the values of u and return the flux for the spcified direction
     !dir=1,2,3 stands for x,y,z direction
     INTEGER      ,INTENT(IN)                             :: N,dir
-    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:N+1,1:5) :: u
-    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:N+1,1:5) :: result
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:1,1:5) :: u
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:N+1,1:1,1:5) :: result
     !local variables beyond here
-    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1) :: p
+    REAL(KIND=RP),DIMENSION(1:N+1,1:1) :: p
     !
     p=(gamma-1.0_RP)*(u(:,:,5)  -0.5_RP*(u(:,:,2)*u(:,:,2)    +u(:,:,3)*u(:,:,3)    +u(:,:,4)*u(:,:,4))    /u(:,:,1)  )
     SELECT CASE (dir)
@@ -580,9 +579,9 @@ CONTAINS
     INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq
     CHARACTER(len=*),INTENT(IN)                                                      :: whichflux
     REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                               :: Dval
-    REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:numvar) :: ustar
+    REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:1,1:N+1,1:N+1,1:1,1:numvar) :: ustar
     !local
-    REAL(KIND=RP),DIMENSION(1:nq,1:nq,1:nq,1:(N+1),1:N+1,1:N+1,1:numvar)    :: g
+    REAL(KIND=RP),DIMENSION(1:nq,1:nq,1:1,1:(N+1),1:N+1,1:1,1:numvar)    :: g
     INTEGER                                                                 :: step
     REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
     REAL(KIND=RP),INTENT(IN)                                                :: dt,t
@@ -616,8 +615,6 @@ CONTAINS
       1720146321549.0_rp/2090206949498.0_rp, 3134564353537.0_rp/4481467310338.0_rp,&
       2277821191437.0_rp/14882151754819.0_rp /)
 
-
-
     DO step=1,5
       g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux,b(step)*dt)
       ustar=ustar+c(step)*dt*g
@@ -627,7 +624,7 @@ CONTAINS
   SUBROUTINE computeError (u,usolution,NQ,N,result)
     IMPLICIT NONE
     INTEGER, INTENT(IN)                                                      :: NQ,N
-    REAL(KIND=RP),INTENT(IN),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5) :: u,usolution
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:nq,1:nq,1:1,1:N+1,1:N+1,1:1,1:5) :: u,usolution
     REAL(KIND=RP),INTENT(OUT),DIMENSION(1:5)                                 :: result
     result(1)=maxval(abs(u(:,:,:,:,:,:,1)-usolution(:,:,:,:,:,:,1)))
     result(2)=maxval(abs(u(:,:,:,:,:,:,2)-usolution(:,:,:,:,:,:,2)))
