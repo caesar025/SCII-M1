@@ -25,7 +25,7 @@
 							</tool>
 							<tool id="photran.managedbuild.tool.gnu.fortran.compiler.macosx.exe.debug.1228957003" name="GNU Fortran Compiler" superClass="photran.managedbuild.tool.gnu.fortran.compiler.macosx.exe.debug">
 								<option id="gnu.fortran.compiler.option.optimization.flags.58285096" name="Other optimization flags" superClass="gnu.fortran.compiler.option.optimization.flags" useByScannerDiscovery="false" value="" valueType="string"/>
-								<option id="gnu.fortran.compiler.macosx.exe.debug.option.debugging.level.1552555832" name="Debug Level" superClass="gnu.fortran.compiler.macosx.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.fortran.debugging.level.max" valueType="enumerated"/>
+								<option id="gnu.fortran.compiler.macosx.exe.debug.option.debugging.level.1552555832" name="Debug Level" superClass="gnu.fortran.compiler.macosx.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.fortran.debugging.level.default" valueType="enumerated"/>
 								<option id="gnu.fortran.compiler.option.warnings.toerrors.2006673806" name="Warnings as errors (-Werror)" superClass="gnu.fortran.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="false" valueType="boolean"/>
 								<option id="gnu.fortran.compiler.option.misc.other.1450848173" name="Other flags" superClass="gnu.fortran.compiler.option.misc.other" useByScannerDiscovery="false" value="-c  -fbounds-check -fbacktrace -Wrealloc-lhs -ffpe-trap=denormal,invalid,overflow,underflow,zero" valueType="string"/>
 								<inputType id="photran.managedbuild.tool.gnu.fortran.compiler.input.492797718" superClass="photran.managedbuild.tool.gnu.fortran.compiler.input"/>

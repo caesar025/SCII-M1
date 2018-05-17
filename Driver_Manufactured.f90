@@ -2,15 +2,15 @@ program Driver_Manufactured
   use Zeitintegration
   implicit none
   REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.07_RP,dt,a
-  INTEGER,parameter                                  :: n=1,anz=3
+  INTEGER,parameter                                  :: n=2,anz=5
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(1:6**3,1:N+1,1:N+1,1:N+1) :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='PI'
+  CHARACTER(len=2)                                   :: whichflux='ST'
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
   INTEGER                                            :: k,i,start=1,m,l,o
-  nq=2**(/ (I,I=start,start+anz-1) /)
+  nq=2*(/ (I,I=start,start+anz-1) /)
   DO k=1,anz
     allocate(u(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5),usolution(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5))
     call Vorbereiten(n,nq(k),D)
