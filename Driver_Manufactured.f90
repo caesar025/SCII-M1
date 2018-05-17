@@ -29,6 +29,8 @@ program Driver_Manufactured
       dt=CFL/(3*a)*(dx/real(N+1))
       IF(t+dt>tend) dt=tend-t
       call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux)
+      ! Ueberpruefen ob Dichte/Druck negativ werden
+      IF (ANY(u(1,1,1,1,:,:,1) < 0)) print*, 'Druck/Dichte sind negativ!'
       !print*,u(1,1,1,1,:,:,1)
       t=t+dt
     END DO
