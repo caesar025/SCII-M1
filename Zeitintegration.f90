@@ -15,27 +15,27 @@ CONTAINS
     ! local variables
     INTEGER                                          :: l,m,o,k,i,j                           ! Laufvariablen
     !
-    allocate(xi(1:n+1),xl(1:nq))
-    allocate(xin(1:n+1,1:nq))
+    ALLOCATE(xi(1:n+1),xl(1:nq))
+    ALLOCATE(xin(1:n+1,1:nq))
     ALLOCATE(x(1:N+1),w(1:N+1),xges(1:NQ*(N+1)),xmit(1:NQ+1))
-    allocate(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:3))
+    ALLOCATE(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:3))
     CALL LegendreGaussLobattoNodesAndWeights(N,x,w)
     Dval= baryzdiffmatrix(x,n)
     dx=2.0_RP/REAL(nq,KIND=RP)
-    CALL linspace(dx/2.0_RP,1.0_RP-dx/2.0_RP,NQ,xmit)
-    DO i=1,NQ
-      xges((i-1)*(N+1)+1:i*(N+1))=xmit(i)+dx/2.0_RP*x
-    ENDDO ! i
+    !CALL linspace(dx/2.0_RP,1.0_RP-dx/2.0_RP,NQ,xmit)
+    !DO i=1,NQ
+    !  xges((i-1)*(N+1)+1:i*(N+1))=xmit(i)+dx/2.0_RP*x
+    !ENDDO ! i
 
     CALL LegendreGaussLobattoNodesAndWeights(N,xi,w)
     !! Bestimme GL punkte in jeder Zelle
     DO k=0,nq-1
-      xl(k+1)=-1+(k+1.0_rp/2)*dx
+      xl(k+1)=-1+(k+1.0_rp/2.0_RP)*dx
       DO i=1,n+1
-        xin(i,k+1)=xl(k+1)+dx/2*xi(i)
+        xin(i,k+1)=xl(k+1)+dx/2.0_RP*xi(i)
       END DO
     END DO
-    !! Bestimme alle punkte.  
+    !! Bestimme alle punkte.
     DO o=1,nq
       DO l=1,nq
         DO m=1,nq
@@ -51,8 +51,10 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
-    !!! Speicher t intern 
-  END SUBROUTINE
+    !print*, xyz(1,2,1,1,:,1,2)
+    !stop
+    !!! Speicher t intern
+  END SUBROUTINE Vorbereiten
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !Operator aus Semidiskreterdarstellung
   FUNCTION R(u,N,NQ,D,whichflux) result(solution)
@@ -69,7 +71,8 @@ CONTAINS
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
     solution=8.0_RP/(dx**3)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2-(0.25_RP*dx**2)*L3)
-  END FUNCTION
+  END FUNCTION R
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   FUNCTION Rmanu(u,N,NQ,D,t,whichflux,dt) result(solution)
     ! Setze Rechteseite zusammen mit manufactuerd solution
@@ -78,7 +81,7 @@ CONTAINS
     REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)           :: solution    ! Rechte Seite
     REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)           :: res                       ! Quellterme
     REAL(KIND=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5) :: u             ! U
-    REAL(KIND=RP),INTENT(IN),DIMENSION(:,:)                                    :: D                        ! Diff-Matrix
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:N+1,1:N+1)                                    :: D                        ! Diff-Matrix
     CHARACTER(len=2),INTENT(IN)                                                :: whichflux
     REAL(KIND=RP),INTENT(IN)                                                   :: t,dt                    ! Startzeit,zeitschritt
     REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3
@@ -87,9 +90,8 @@ CONTAINS
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
     solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
-    solution=solution+dt*res
-
-  END FUNCTION
+    solution=solution+res !dt*res noch mal ueberpruefen !!!!
+  END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Residuum (NQ,N,t,result)
     ! Berechne Quellterme
@@ -113,9 +115,9 @@ CONTAINS
           DO k=1,n+1
             DO j=1,n+1
               DO i=1,n+1
-                result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))    
+                result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
                 result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
-                  +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))    
+                  +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
@@ -126,7 +128,7 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
-  END SUBROUTINE
+  END SUBROUTINE Residuum
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeL(u,D,dir,result,N,NQ,whichflux)
     IMPLICIT NONE
@@ -183,7 +185,7 @@ CONTAINS
                 DO i=1,N+1
                   CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,whichflux,Fsharp,N)
                   DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=2.0_RP*DOt_product(D(j,:),Fsharp(:,var))
+                    result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(j,:),Fsharp(:,var))
                   ENDDO ! var
                 ENDDO ! i
               ENDDO ! j
@@ -215,7 +217,7 @@ CONTAINS
                 DO i=1,N+1
                   CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,whichflux,Fsharp,N)
                   DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=2.0_RP*DOt_product(D(k,:),Fsharp(:,var))
+                    result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(k,:),Fsharp(:,var))
                   ENDDO ! var
                 ENDDO ! i
               ENDDO ! j
@@ -239,7 +241,7 @@ CONTAINS
         ENDDO ! l
       ENDDO ! o
     END SELECT
-  END SUBROUTINE
+  END SUBROUTINE computeL
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !    SUBROUTINE calculateEuler3DFlux(u,dir,result)
   !    !SUBROUTINE gets the values of u and return the flux for the spcified direction
@@ -279,22 +281,23 @@ CONTAINS
   !      END SELECT
   !    END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE computeviscosFlux(u,dv,dir,n,result)
+  SUBROUTINE computeviscosFlux(u,dv1,dv2,dv3,dir,n,result)
     !computes the viscos part of the flux analytically
     IMPLICIT NONE
     INTEGER       ,INTENT(IN)                               :: N,dir
-    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)   :: u, dv
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)   :: u
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:3)   :: dv1,dv2,dv3
     REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:n+1,1:5)   :: result
     REAL(KIND=RP)             ,DIMENSION(1:N+1,1:N+1)       ::P
     result(:,:,1)=0.0_RP
     p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)*u(:,:,2)+u(:,:,3)*u(:,:,3)+u(:,:,4)*u(:,:,4))/u(:,:,1))
     SELECT CASE(dir)
     CASE(1)
-      result(:,:,2)=mu*4.0_RP/3.0_RP*dv(:,:,1)
-      result(:,:,3)=mu*dv(:,:,1)
-      result(:,:,4)=mu*dv(:,:,1)
-      result(:,:,5)=mu*(dv(:,:,1)*(4.0_RP/3.0_RP*u(:,:,2)/u(:,:,1)+u(:,:,3)/u(:,:,1)+u(:,:,4)/u(:,:,1))+&
-        p/(u(:,:,1)*Rkonst))
+      result(:,:,2)=mu*(2*dv1(:,:,1)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
+      result(:,:,3)=mu*(dv1(:,:,2)+dv2(:,:,1))
+      result(:,:,4)=mu*(dv1(:,:,3)+dv3(:,:,1))
+      result(:,:,5)=mu*(u(:,:,2)/u(:,:,1)*(2.0_rp*dv2(:,:,2)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
+                    u(:,:,3)/u(:,:,1)*(dv2(:,:,1)+dv1(:,:,2))+u(:,:,4)/u(:,:,1)*(dv3(:,:,1)+dv1(:,:,3)))+mu/(Pr*Rkonst)*dTemp(:,:,1)
     CASE(2)
       result(:,:,3)=mu*4.0_RP/3.0_RP*dv(:,:,2)
       result(:,:,2)=mu*dv(:,:,2)
@@ -308,7 +311,7 @@ CONTAINS
       result(:,:,5)=mu*(dv(:,:,3)*(4.0_RP/3.0_RP*u(:,:,4)/u(:,:,1)+u(:,:,3)/u(:,:,1)+u(:,:,2)/u(:,:,1))+&
         p/(u(:,:,1)*Rkonst))
     END SELECT
-  END SUBROUTINE
+  END SUBROUTINE computeviscosFlux
   SUBROUTINE computeFsharp(u1,u2,dir,whichflux,result,N)
     !SUBROUTINE computes the Volume flux Fsharp
     IMPLICIT NONE
@@ -345,7 +348,7 @@ CONTAINS
         result(:,2)=(u1(2)*u1(4)/u1(1)+u2(:,2)*u2(:,4)/u2(:,1))*0.5_RP
         result(:,3)=(u1(3)*u1(4)/u1(1)+u2(:,3)*u2(:,4)/u2(:,1))*0.5_RP
         result(:,4)=(u1(4)**2/u1(1)+u2(:,4)**2/u2(:,1))*0.5_RP+(p1+p2)*0.5_RP
-        result(:,5)=(u1(4)/u1(1)*(u1(5)+p1)+u2(:,3)/u2(:,1)*(u2(:,5)+p2))*0.5_RP
+        result(:,5)=(u1(4)/u1(1)*(u1(5)+p1)+u2(:,4)/u2(:,1)*(u2(:,5)+p2))*0.5_RP!fehler
       END SELECT
     CASE('PI')
       !! Pirozzoli
@@ -373,30 +376,30 @@ CONTAINS
         result(:,5)=result(:,1)    *(h1+h2)*0.5_RP
       END SELECT
     END SELECT
-  END SUBROUTINE
+  END SUBROUTINE computeFsharp
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Initialcondition(u,NQ,N)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
     u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
-    u(:,:,:,:,:,:,2)=1.0_RP
-    u(:,:,:,:,:,:,3)=1.0_RP
-    u(:,:,:,:,:,:,4)=1.0_RP
+    u(:,:,:,:,:,:,2)=1.0_RP*u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,3)=1.0_RP*u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,4)=1.0_RP*u(:,:,:,:,:,:,1)
     u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
-  END SUBROUTINE
+  END SUBROUTINE Initialcondition
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeSolution(u,NQ,N,t)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
-    REAL(KIND=RP),INTENT(IN)                                                :: t
+    REAL(KIND=RP),INTENT(IN)                                                    :: t
     u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)-2*t))/10.0_rp
-    u(:,:,:,:,:,:,2)=1.0_RP
-    u(:,:,:,:,:,:,3)=1.0_RP
-    u(:,:,:,:,:,:,4)=1.0_RP
+    u(:,:,:,:,:,:,2)=1.0_RP*u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,3)=1.0_RP*u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,4)=1.0_RP*u(:,:,:,:,:,:,1)
     u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
-  END SUBROUTINE
+  END SUBROUTINE computeSolution
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeLocalLaxFriedrich(uL,uR,dir,pos,whichflux,result,N)
     ! Compute local LaxFriedrich
@@ -440,14 +443,14 @@ CONTAINS
         result(:,:,4)=FPI(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4))/2.0_RP-FR(:,:,4)
         result(:,:,5)=FPI(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5))/2.0_RP-FR(:,:,5)
       CASE(1)
-        result(:,:,1)=FPI(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1))/2-FL(:,:,1)
-        result(:,:,2)=FPI(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2))/2-FL(:,:,2)
-        result(:,:,3)=FPI(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3))/2-FL(:,:,3)
-        result(:,:,4)=FPI(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4))/2-FL(:,:,4)
-        result(:,:,5)=FPI(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5))/2-FL(:,:,5)
+        result(:,:,1)=FPI(:,:,1)-lamMax*(uR(:,:,1)-uL(:,:,1))/2.0_RP-FL(:,:,1)
+        result(:,:,2)=FPI(:,:,2)-lamMax*(uR(:,:,2)-uL(:,:,2))/2.0_RP-FL(:,:,2)
+        result(:,:,3)=FPI(:,:,3)-lamMax*(uR(:,:,3)-uL(:,:,3))/2.0_RP-FL(:,:,3)
+        result(:,:,4)=FPI(:,:,4)-lamMax*(uR(:,:,4)-uL(:,:,4))/2.0_RP-FL(:,:,4)
+        result(:,:,5)=FPI(:,:,5)-lamMax*(uR(:,:,5)-uL(:,:,5))/2.0_RP-FL(:,:,5)
       END SELECT
     END SELECT
-  END SUBROUTINE
+  END SUBROUTINE computeLocalLaxFriedrich
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE  calculateEulerRandFluxPI(u1,u2,dir,result,N)
     IMPLICIT NONE
@@ -492,7 +495,7 @@ CONTAINS
         +(u1(:,:,1)+u2(:,:,1))*0.5_RP
       result(:,:,5)=(u1(:,:,1)+u2(:,:,1))*(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*(h1+h2)*0.125_RP
     END SELECT
-  END SUBROUTINE
+  END SUBROUTINE calculateEulerRandFluxPI
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE lambdaMax(uL,uR,dir,result,N)
     !Computes the max of the eigenvalues at every Interface
@@ -530,7 +533,8 @@ CONTAINS
         result(l,k)=MAXVAL(lambda(l,k,:))
       ENDDO ! k
     ENDDO ! l
-  END SUBROUTINE
+    result(:,:)=maxval(lambda(:,:,:))
+  END SUBROUTINE lambdaMax
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE lambdaMaxGlobal(u,lambdamax,NQ,N)
     !computes the max eigenvalue glabally for the timestep
@@ -549,7 +553,7 @@ CONTAINS
       MAXVAL(abs(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1)-c)),MAXVAL(ABS(u(:,:,:,:,:,:,4)/u(:,:,:,:,:,:,1)-c)),&
       MAXVAL(ABS(u(:,:,:,:,:,:,2)/u(:,:,:,:,:,:,1))),MAXVAL(ABS(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1))),&
       MAXVAL(ABS(u(:,:,:,:,:,:,4)/u(:,:,:,:,:,:,1))))
-  END SUBROUTINE
+  END SUBROUTINE lambdaMaxGlobal
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE calculateEulerRandFlux(u,dir,result,N)
     IMPLICIT NONE
@@ -584,7 +588,7 @@ CONTAINS
     CASE DEFAULT
       PRINT*,'Specify 1,2 or 3'
     END SELECT
-  END SUBROUTINE
+  END SUBROUTINE calculateEulerRandFlux
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE RungeKutta5explizit(ustar,nq,n,numvar,dt,Dval,t,whichflux)
     IMPLICIT NONE
@@ -634,27 +638,27 @@ CONTAINS
       g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux,b(step)*dt)
       ustar=ustar+c(step)*dt*g
     ENDDO ! step
-  END SUBROUTINE
+  END SUBROUTINE RungeKutta5explizit
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeError (u,usolution,NQ,N,result)
-    IMPLICIT NONE 
+    IMPLICIT NONE
     INTEGER, INTENT(IN)                                                      :: NQ,N
     REAL(KIND=RP),INTENT(IN),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5) :: u,usolution
-    REAL(KIND=RP),INTENT(OUT),DIMENSION(5) :: result
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:5)                                 :: result
     result(1)=maxval(abs(u(:,:,:,:,:,:,1)-usolution(:,:,:,:,:,:,1)))
     result(2)=maxval(abs(u(:,:,:,:,:,:,2)-usolution(:,:,:,:,:,:,2)))
     result(3)=maxval(abs(u(:,:,:,:,:,:,3)-usolution(:,:,:,:,:,:,3)))
     result(4)=maxval(abs(u(:,:,:,:,:,:,4)-usolution(:,:,:,:,:,:,4)))
     result(5)=maxval(abs(u(:,:,:,:,:,:,5)-usolution(:,:,:,:,:,:,5)))
-
-    deallocate(xyz,x,w,xmit,xges)
-  END SUBROUTINE
+    print*, result
+    DEALLOCATE(xyz,x,w,xmit,xges)
+  END SUBROUTINE computeError
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeEOC (errors,n,nq,anz,result)
     IMPLICIT NONE
-    INTEGER,INTENT(IN)                             :: n,anz
+    INTEGER,INTENT(IN)                             :: anz,n
     REAL(KIND=RP),INTENT(IN),DIMENSION(1:5,1:anz)  :: errors
-    INTEGER,INTENT(IN),DIMENSION(1:anz)      :: nq
+    INTEGER,INTENT(IN),DIMENSION(1:anz)            :: nq
     REAL(KIND=RP),INTENT(OUT),DIMENSION(1:5,1:anz) :: result
     INTEGER                                        :: k
     result=0.0_RP
@@ -662,6 +666,6 @@ CONTAINS
       result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k),rp)/(nq(k+1)))
     END DO
 
-  END SUBROUTINE
+  END SUBROUTINE computeEOC
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-END MODULE
+END MODULE Zeitintegration
