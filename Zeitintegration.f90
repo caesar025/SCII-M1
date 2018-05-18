@@ -18,7 +18,7 @@ CONTAINS
     ALLOCATE(xi(1:n+1),xl(1:nq))
     ALLOCATE(xin(1:n+1,1:nq))
     ALLOCATE(x(1:N+1),w(1:N+1),xges(1:NQ*(N+1)),xmit(1:NQ+1))
-    ALLOCATE(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:3))
+    ALLOCATE(xyz(1:nq,1:nq,1:1,1:n+1,1:n+1,1:1,1:3))
     CALL LegendreGaussLobattoNodesAndWeights(N,x,w)
     Dval= baryzdiffmatrix(x,n)
     dx=2.0_RP/REAL(nq,KIND=RP)
@@ -36,9 +36,9 @@ CONTAINS
       END DO
     END DO
     !! Bestimme alle punkte.
-    DO o=1,nq
+    DO o=1,1
       DO l=1,nq
-        DO m=1,1
+        DO m=1,nq
           DO k=1,1
             DO j=1,n+1
               DO i=1,n+1
@@ -70,7 +70,7 @@ CONTAINS
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
    
-    solution=8.0_RP/(dx**2)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2)
+    solution=8.0_RP/(2.0_RP*dx**2)*((-0.5_RP*dx)*L1-(0.5_RP*dx)*L2)
   END FUNCTION R
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -88,7 +88,7 @@ CONTAINS
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
-    solution=8.0_RP/(dx**2)*(-0.5_RP*dx*l1-0.5_RP*dx*l2)
+    solution=8.0_RP/(2.0_RP*dx**2)*((-0.5_RP*dx)*L1-(0.5_RP*dx)*L2)
     solution=solution+res !dt*res noch mal ueberpruefen !!!!
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -114,13 +114,13 @@ CONTAINS
           DO k=1,1
             DO j=1,n+1
               DO i=1,n+1
-                result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
-                result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
-                  +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                result(m,l,o,i,j,k,1)=0.0_rp
+                result(m,l,o,i,j,k,2)=-(gamma-1.0_RP)*(2.0_RP*(2.0_RP+0.1_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-&
+                2.0_RP*t)))*c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2.0_RP*t))-2.0_RP*(c1*cos(pi*(xyz(m,l,o,i,j,k,1)&
+                                        +xyz(m,l,o,i,j,k,2)-2.0_RP*t))))
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,4)=0.0_rp
-                result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
-                  +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                result(m,l,o,i,j,k,5)=2.0_RP*result(m,l,o,i,j,k,2)
               ENDDO
             ENDDO
           ENDDO
@@ -383,8 +383,8 @@ CONTAINS
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:1,1:N+1,1:N+1,1:1,1:5) :: u
     REAL(KIND=RP),INTENT(IN)                                                    :: t
     u(:,:,:,:,:,:,1)=2.0_rp+sin(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)-2*t))/10.0_rp
-    u(:,:,:,:,:,:,2)=1.0_RP*u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,3)=1.0_RP*u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
     u(:,:,:,:,:,:,4)=0.0_RP
     u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
   END SUBROUTINE computeSolution

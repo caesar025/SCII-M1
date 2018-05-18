@@ -1,12 +1,12 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.6_RP,dt,a
-  INTEGER,parameter                                  :: n=2,anz=4
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.5_RP,dt,a
+  INTEGER,parameter                                  :: n=2,anz=3
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(1:6**3,1:N+1,1:N+1,1:N+1) :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='PI'
+  CHARACTER(len=2)                                   :: whichflux='ST'
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
   INTEGER                                            :: k,i,start=3,m,l,o
@@ -16,7 +16,7 @@ program Driver_Manufactured
     call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
-    dt=CFL/(3*a)*(dx/real(N+1,KIND=RP))
+    dt=CFL/(2*a)*(dx/real(N+1,KIND=RP))
     !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     DO while(tend-t>epsilon(dt))
       print*,'t'
