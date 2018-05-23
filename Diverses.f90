@@ -44,10 +44,10 @@ CONTAINS
         RETURN
     END SUBROUTINE ExportToTecplot_2D
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    SUBROUTINE MatrixPlot(M,N)
+    SUBROUTINE MatrixPlot(M,N,l)
         IMPLICIT NONE
-        INTEGER      ,INTENT(IN)                    :: N
-        REAL(KIND=RP),INTENT(IN),DIMENSION(1:N,1:N) :: m
+        INTEGER      ,INTENT(IN)                    :: N,l
+        REAL(KIND=RP),INTENT(IN),DIMENSION(1:n,1:l) :: m
         ! local variables
         INTEGER :: i
         !
