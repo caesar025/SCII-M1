@@ -69,7 +69,7 @@ CONTAINS
     !
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
-   
+
     solution=8.0_RP/(2.0_RP*dx**2)*((-0.5_RP*dx)*L1-(0.5_RP*dx)*L2)
   END FUNCTION R
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -89,7 +89,7 @@ CONTAINS
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
     solution=8.0_RP/(2.0_RP*dx**2)*((-0.5_RP*dx)*L1-(0.5_RP*dx)*L2)
-    solution=solution+res !dt*res noch mal ueberpruefen !!!!
+    solution=solution+dt*res !dt*res noch mal ueberpruefen !!!!
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Residuum (NQ,N,t,result)
@@ -100,7 +100,6 @@ CONTAINS
     REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:1,1:n+1,1:(N+1),1:1,1:5) :: result                       ! Quellterme
     REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5               ! Hilfsvariablen
     INTEGER                                                         :: o,l,m,k,j,i
-
 
     c1=pi/10.0_RP
     c2=-1.0_RP/5.0_RP*pi+pi/20.0_rp*(1.0_rp+5.0_RP*gamma)
@@ -644,7 +643,7 @@ CONTAINS
     INTEGER                                        :: k
     result=0.0_RP
     DO k=1,anz-1
-      result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k),rp)/(nq(k+1)))
+        result(:,k+1)=log(errors(:,k+1)/errors(:,k))/log(real(nq(k),rp)/(nq(k+1)))
     END DO
 
   END SUBROUTINE computeEOC
