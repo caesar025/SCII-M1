@@ -87,7 +87,7 @@ CONTAINS
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     call Residuum(NQ,N,t,res)
     solution=8.0_RP/(2.0_RP*dx**2)*((-0.5_RP*dx)*L1-(0.5_RP*dx)*L2)
-    solution=solution+dt*res !dt*res noch mal ueberpruefen !!!!
+    solution=solution+res !dt*res noch mal ueberpruefen !!!!
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Residuum (NQ,N,t,result)
@@ -111,13 +111,19 @@ CONTAINS
           DO k=1,1
             DO j=1,n+1
               DO i=1,n+1
+               ! result(m,l,o,i,j,k,1)=0.0_rp
+               ! result(m,l,o,i,j,k,2)=-(gamma-1.0_RP)*(2.0_RP*(2.0_RP+0.1_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-&
+               ! 2.0_RP*t)))*c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2.0_RP*t))-2.0_RP*(c1*cos(pi*(xyz(m,l,o,i,j,k,1)&
+               !                         +xyz(m,l,o,i,j,k,2)-2.0_RP*t))))
+               ! result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
+               ! result(m,l,o,i,j,k,4)=0.0_rp
+               ! result(m,l,o,i,j,k,5)=2.0_RP*result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,1)=0.0_rp
-                result(m,l,o,i,j,k,2)=-(gamma-1.0_RP)*(2.0_RP*(2.0_RP+0.1_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-&
-                2.0_RP*t)))*c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2.0_RP*t))-2.0_RP*(c1*cos(pi*(xyz(m,l,o,i,j,k,1)&
-                                        +xyz(m,l,o,i,j,k,2)-2.0_RP*t))))
+                result(m,l,o,i,j,k,2)=(gamma-1.0_RP)*((3.0_RP+2.0_RP/10.0_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2*t)))&
+                  *cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2.0_RP*t))*pi/10.0_RP) 
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,4)=0.0_rp
-                result(m,l,o,i,j,k,5)=2.0_RP*result(m,l,o,i,j,k,2)
+                result(m,l,o,i,j,k,5)=2.0_RP*result(m,l,o,i,j,k,2)!&
               ENDDO
             ENDDO
           ENDDO
@@ -628,7 +634,7 @@ CONTAINS
     result(3)=maxval(abs(u(:,:,:,:,:,:,3)-usolution(:,:,:,:,:,:,3)))
     result(4)=maxval(abs(u(:,:,:,:,:,:,4)-usolution(:,:,:,:,:,:,4)))
     result(5)=maxval(abs(u(:,:,:,:,:,:,5)-usolution(:,:,:,:,:,:,5)))
-    !DEALLOCATE(xyz,x,w,xmit,xges)
+    DEALLOCATE(xyz,x,w,xmit,xges)
   END SUBROUTINE computeError
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeEOC (errors,n,nq,anz,result)
