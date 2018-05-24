@@ -23,7 +23,7 @@ CONTAINS
         IMPLICIT NONE
         INTEGER         ,INTENT(IN)                      :: N,K,fUnit
         CHARACTER(LEN=*),INTENT(IN)                      :: solutionFile
-        REAL(KIND=RP)   ,INTENT(IN),DIMENSION(K,0:N,0:N) :: x,y,u
+        REAL(KIND=RP)   ,INTENT(IN),DIMENSION(K,1:N+1,1:N+1) :: x,y,u
         ! array size issue? your computation uses 1:N+1 but this uses 0:N structure, might be a problem
         ! also you'll need a 3D version of this plotting routine, available in the FORTRAN notes
         ! Local variables
@@ -34,8 +34,8 @@ CONTAINS
         !
         DO l = 1,K
             WRITE(fUnit,*)"ZONE I =",N+1,",J=",N+1,",F=POINT"
-            DO j = 0,N
-                DO i = 0,N
+            DO j = 1,N+1
+                DO i = 1,N+1
                     WRITE(fUnit,*)x(l,i,j),y(l,i,j),u(l,i,j)
                 END DO ! i
             END DO ! j
@@ -72,26 +72,26 @@ CONTAINS
     END SUBROUTINE
     SUBROUTINE ExportToTecplot_3D(x,y,z,u,N,K,fUnit,solutionFile)
         IMPLICIT NONE
-        INTEGER ,INTENT(IN) :: N,K,fUnit
-        CHARACTER(LEN=*) ,INTENT(IN) :: solutionFile
-        REAL(KIND=RP),DIMENSION(1:K,1:N+1,1:N+1,1:N+1),INTENT(IN) :: x,y,z,u
-        ! Local variables
-        INTEGER :: i,j,h,p
+        INTEGER                                 ,INTENT(IN) :: N,K,fUnit
+        CHARACTER(LEN=*)                        ,INTENT(IN) :: solutionFile
+        REAL(KIND=RP),DIMENSION(1:K,0:N,0:N,0:N),INTENT(IN) :: x,y,z,u
+        !  Local variables
+        INTEGER           :: i,j,h,p
         CHARACTER(LEN=32) :: valuesFMT
-        ! Format the output of real numbers
+        !  Format the output of real numbers
         valuesFMT = "(4E13.5)"
         !
-        WRITE(fUnit,*)'TITLE = "',solutionFile,'"'
+        WRITE(fUnit,*)'TITLE = "',solutionFile,'solution.tec"'
         WRITE(fUnit,*)'VARIABLES = "x","y","z","',solutionFile,'"'
         !
         DO h = 1,K
-            WRITE(fUnit,*)"ZONE I =",N+1,",J=",N+1,",K=",N+1,",F=POINT"
-            DO i = 1,N+1
-                DO j = 1,N+1
-                    DO p = 1,N+1
-                        WRITE(fUnit,valuesFMT)x(h,i,j,p),y(h,i,j,p),z(h,i,j,p),u(h,i,j,p)
-                    END DO
-                END DO
+          WRITE(fUnit,*)"ZONE I =",N+1,",J=",N+1,",K=",N+1,",F=POINT"
+          DO i = 0,N
+            Do j = 0,N
+              DO p = 0,N
+                WRITE(fUnit,valuesFMT)x(h,i,j,p),y(h,i,j,p),z(h,i,j,p),u(h,i,j,p)
+              END DO
+              END DO
             END DO
         END DO
         !

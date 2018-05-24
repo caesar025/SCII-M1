@@ -110,17 +110,17 @@ contains
     REAL(KIND=RP)                            :: l,lstrich,delta,q,qstrich,tol=4*1e-16
     INTEGER                                  :: k,j,nit=4
     IF(N==1) THEN
-      x(0)=-1
-      w(0)=1
-      x(1)=1
+      x(0)=-1.0_RP
+      w(0)=1.0_RP
+      x(1)=1.0_RP
       w(1)=w(0)
     ELSE
-      x(0)=-1
-      w(0)=2/(n*(n+1))
-      x(n)=1
+      x(0)=-1.0_RP
+      w(0)=2.0_RP/(real(n,rp)*(real(n,rp)+1.0_RP))
+      x(n)=1.0_RP
       w(n)=w(0)
       DO j=0,floor((REAL(N,rp)+1.0_rp)/2.0_rp)-1
-        x(j)=-cos(((REAL(j,rp)+1.0_rp/4_rp)*pi/N-3/(8.0_rp*n*pi*(REAL(j,rp)+1.0_rp/4_rp))))
+        x(j)=-cos(((REAL(j,rp)+1.0_rp/4.0_rp)*pi/N-3/(8.0_rp*n*pi*(REAL(j,rp)+1.0_rp/4.0_rp))))
         DO k=0,nit
           call qANdLEvaluation(n,x(j),q,qstrich,l)
           delta=-q/qstrich
@@ -240,7 +240,7 @@ contains
         summevec(i)=summevec(i)+w(j)/(x(i)-x(j))
       END DO
     END DO
-    summevec=summevec*(-1/w)
+    summevec=summevec*(-1.0_RP/w)
 
 
     DO i=0,n

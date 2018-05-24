@@ -51,8 +51,6 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
-    !print*, xyz(1,2,1,1,:,1,2)
-    !stop
     !!! Speicher t intern
   END SUBROUTINE Vorbereiten
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -630,8 +628,7 @@ CONTAINS
     result(3)=maxval(abs(u(:,:,:,:,:,:,3)-usolution(:,:,:,:,:,:,3)))
     result(4)=maxval(abs(u(:,:,:,:,:,:,4)-usolution(:,:,:,:,:,:,4)))
     result(5)=maxval(abs(u(:,:,:,:,:,:,5)-usolution(:,:,:,:,:,:,5)))
-    print*, result
-    DEALLOCATE(xyz,x,w,xmit,xges)
+    !DEALLOCATE(xyz,x,w,xmit,xges)
   END SUBROUTINE computeError
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeEOC (errors,n,nq,anz,result)

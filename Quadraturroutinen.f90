@@ -104,29 +104,27 @@ contains
     REAL(KIND=RP),INTENT(IN)    :: x
     REAL(KIND=RP),INTENT(OUT)   :: q,q1,LN
     REAL(KIND=RP),DIMENSION(3)  :: L,L1
-    REAL(KIND=RP)               :: k=2.0_RP
+    INTEGER                     :: k=2
     IF (N<2) return
     L(1)=1.0_RP
     L(2)=x
     L1(1)=0.0_RP
     L1(2)=1.0_RP
-    DO
-      IF (k>N) exit
-      L(3)=(2*k-1)/(k)*x*L(2)-(k-1)/(k)*L(1)
-      L1(3)=L1(1)+(2*k-1)*L(2)
+    DO k=1,N
+      L(3)=(2.0_RP*real(k,rp)-1.0_RP)/real(k,rp)*x*L(2)-(real(k,rp)-1.0_RP)/real(k,rp)*L(1)
+      L1(3)=L1(1)+(2.0_RP*real(k,rp)-1)*L(2)
       !if (k==N) exit
       L(1)=L(2)
       L(2)=L(3)
       L1(1)=L1(2)
       L1(2)=L1(3)
-      k=k+1.0_RP
     ENDdo
-    k=real(N,KIND=RP)+1.0_RP
-    LN=(2*k-1)/(k)*x*L(2)-(k-1)/(k)*L(1)
-    L1(3)=L1(1)+(2*k-1)*L(2)
+    k=N+1
+    LN=(2.0_RP*real(k,rp)-1.0_RP)/real(k,rp)*x*L(2)-(real(k,rp)-1.0_RP)/real(k,rp)*L(1)
+    L1(3)=L1(1)+(2.0_RP*real(k,rp)-1.0_RP)*L(2)
     q=LN-L(1)
     q1=L1(3)-L1(1)
-    k=2.0_RP
+    k=2
   END SUBROUTINE
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
