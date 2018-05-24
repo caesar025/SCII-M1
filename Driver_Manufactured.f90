@@ -2,7 +2,7 @@ program Driver_Manufactured
   use Zeitintegration
   implicit none
   REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.1_RP,dt,a
-  INTEGER,parameter                                  :: n=2,anz=1
+  INTEGER,parameter                                  :: n=1,anz=3
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(1:64,1:N+1,1:N+1) :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
@@ -54,16 +54,17 @@ program Driver_Manufactured
     ! Berechne Fehler und Loesung
     call computeSolution(usolution,NQ(k),N,t)
     call computeError(u,usolution,NQ(k),N,errors(:,k))
-  !  print*, 'FEHLER'
-   ! print*,errors(1,:)
-    !print*,errors(2,:)
-    !print*,errors(3,:)
-    !print*,errors(4,:)
-    !print*,errors(5,:)
-    ! Setzte alles wieder auf 0
-    !deallocate(u,usolution)
+   print*, 'FEHLER'
+   print*,errors(1,:)
+   print*,errors(2,:)
+   print*,errors(3,:)
+   print*,errors(4,:)
+   print*,errors(5,:)
+   ! Setzte alles wieder auf 0
+   deallocate(u,usolution)
     t=0.0_RP
   END DO
+
         do l=1,nq(1)
             do o=1,nq(1)
                 uplot(o+o*(l-1),:,:)=u(o,l,m,:,:,1,1)
@@ -79,6 +80,25 @@ program Driver_Manufactured
   !print*, EOC(3,:)
   !print*, EOC(4,:)
   !print*, EOC(5,:)
+
+ !       do l=1,nq(1)
+ !           do o=1,nq(1)
+ !               uplot(o+o*(l-1),:,:)=u(o,l,m,:,:,1,1)
+ !               xplot(o+o*(l-1),:,:)=xyz(o,l,m,:,:,1,1)
+ !               yplot(o+o*(l-1),:,:)=xyz(o,l,m,:,:,1,2)
+ !           enddo
+ !       enddo
+ !   open(unit=15,file='rho.tec')
+ !   call ExportToTecplot_2D(xplot,yplot,uplot,N,64,15,'rho')
+
+ !   close(15)
+ call computeEOC(errors,n,nq,anz,EOC)
+ print*, "EOC"
+ print*, EOC(1,:)
+ print*, EOC(2,:)
+ print*, EOC(3,:)
+ print*, EOC(4,:)
+ print*, EOC(5,:)
 end program Driver_Manufactured
 !! -g -fbacktrace -ffpe-trap=denormal,invalid,zero,overflow,underflow -Warray-bounds
 
