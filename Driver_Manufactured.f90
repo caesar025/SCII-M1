@@ -1,18 +1,21 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.1_RP,CFL=0.05_RP,dt,a
-  INTEGER,parameter                                  :: n=3,anz=3
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.3_RP,dt,a
+  INTEGER,parameter                                  :: n=3,anz=4
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
-  REAL(KIND=RP),DIMENSION(1:6**3,1:N+1,1:N+1,1:N+1) :: uplot,xplot,yplot,zplot
+  REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='ST'
+  CHARACTER(len=2)                                   :: whichflux='ST',numChar
+   CHARACTER(LEN=16) :: fName  = "Movies/UXX.tec"
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
-  INTEGER                                            :: k,i,start=1,m,l,o
+  INTEGER                                            :: k,i,start=3,m=0,l,o,li=1,j=0
   nq=2*(/ (I,I=start,start+anz-1) /)
   DO k=1,anz
     allocate(u(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5),usolution(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5))
+    allocate(uplot(1:nq(k)**3,1:n+1,1:n+1,1:n+1),xplot(1:nq(k)**3,1:n+1,1:n+1,1:n+1),yplot(1:nq(k)**3,1:n+1,1:n+1,1:n+1)&
+    ,zplot(1:nq(k)**3,1:n+1,1:n+1,1:n+1))
     call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
@@ -32,40 +35,82 @@ program Driver_Manufactured
       ! Ueberpruefen ob Dichte/Druck negativ werden
       IF (ANY(u(:,:,:,:,:,:,1) < 0)) print*, 'Druck/Dichte sind negativ!'
       !print*,u(1,1,1,1,:,:,1)
-      t=t+dt
+          t=t+dt
+
+      IF (MODULO(j,20).EQ.0 .and. nq(k)==6) THEN
+!!
+!  Print solution every 50 timesteps for movies
+!!
+        do li=1,nq(k)
+        do l=1,nq(k)
+            do o=1,nq(k)
+
+                uplot(o+nq(k)*(l-1)+nq(k)**2*(li-1),:,:,:)=u(o,l,li,:,:,:,1)
+                xplot(o+nq(k)*(l-1)+nq(k)**2*(li-1),:,:,:)=xyz(o,l,li,:,:,:,1)
+                yplot(o+nq(k)*(l-1)+nq(k)**2*(li-1),:,:,:)=xyz(o,l,li,:,:,:,2)
+                zplot(o+nq(k)*(l-1)+nq(k)**2*(li-1),:,:,:)=xyz(o,l,li,:,:,:,3)
+
+            enddo
+        enddo
+        enddo
+
+
+            m = m + 1
+            WRITE(numChar,'(i2)')m
+            IF (m.GE.10) THEN
+               fName(9:10) = numChar
+            ELSE
+               fName(9:9)    = "0"
+               fName(10:10)  = numChar(2:2)
+            END IF
+            open(unit=15,file=fName)
+            call ExportToTecplot_3D(xplot,yplot,zplot,uplot,N,NQ(k)**3,15,'rho')
+            close(15)
+
+        endif
+      j=j+1
+
     END DO
     ! Berechne Fehler und Loesung
     call computeSolution(usolution,NQ(k),N,t)
     call computeError(u,usolution,NQ(k),N,errors(:,k))
-    print*, "FEHLER"
-    print*,errors(1,:)
-    print*,errors(2,:)
-    print*,errors(3,:)
-    print*,errors(4,:)
-    print*,errors(5,:)
-    ! Setzte alles wieder auf 0
-    deallocate(u,usolution)
+   print*, 'FEHLER'
+   print*,errors(1,:)
+   print*,errors(2,:)
+   print*,errors(3,:)
+   print*,errors(4,:)
+   print*,errors(5,:)
+   ! Setzte alles wieder auf 0
+   deallocate(u,usolution)
     t=0.0_RP
-  END DO 
+     deallocate(uplot,xplot,yplot,zplot)
+  END DO
 
-    do m=1,nq(1)
-        do l=1,nq(1)
-            do o=1,nq(1)
-                !uplot(o+o*(m*l-1),:,:,:)=u(o,l,m,:,:,:,1)
-                !xplot(o+o*(m*l-1),:,:,:)=xyz(o,l,m,:,:,:,1)
-                !yplot(o+o*(m*l-1),:,:,:)=xyz(o,l,m,:,:,:,1)
-                !!zplot(o+o*(m*l-1),:,:,:)=xyz(o,l,m,:,:,:,1)
-            enddo
-        enddo
-    enddo
-    !open(unit=15,file='rho.tec')
-    !call ExportToTecplot_3D(xplot,yplot,zplot,uplot,N,nq(1)**3,15,'rho.tec')
-    !close(15)
-  call computeEOC(errors,n,nq,anz,EOC)
-  print*, "EOC"
-  print*, EOC(1,:)
-  print*, EOC(2,:)
-  print*, EOC(3,:)
-  print*, EOC(4,:)
-  print*, EOC(5,:)
+
+ ! call computeEOC(errors,n,nq,anz,EOC)
+ ! print*, "EOC"
+  !print*, EOC(1,:)
+  !print*, EOC(2,:)
+  !print*, EOC(3,:)
+  !print*, EOC(4,:)
+  !print*, EOC(5,:)
+
+ !       do l=1,nq(1)
+ !           do o=1,nq(1)
+ !               uplot(o+o*(l-1),:,:)=u(o,l,m,:,:,1,1)
+ !               xplot(o+o*(l-1),:,:)=xyz(o,l,m,:,:,1,1)
+ !               yplot(o+o*(l-1),:,:)=xyz(o,l,m,:,:,1,2)
+ !           enddo
+ !       enddo
+ !   open(unit=15,file='rho.tec')
+ !   call ExportToTecplot_2D(xplot,yplot,uplot,N,64,15,'rho')
+
+ !   close(15)
+ call computeEOC(errors,n,nq,anz,EOC)
+ print*, "EOC"
+ print*, EOC(1,:)
+ print*, EOC(2,:)
+ print*, EOC(3,:)
+ print*, EOC(4,:)
+ print*, EOC(5,:)
 end program Driver_Manufactured
