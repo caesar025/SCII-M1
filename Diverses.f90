@@ -23,7 +23,7 @@ CONTAINS
         IMPLICIT NONE
         INTEGER         ,INTENT(IN)                      :: N,K,fUnit
         CHARACTER(LEN=*),INTENT(IN)                      :: solutionFile
-        REAL(KIND=RP)   ,INTENT(IN),DIMENSION(K,1:N+1,1:N+1) :: x,y,u
+        REAL(KIND=RP)   ,INTENT(IN),DIMENSION(1:K,1:N+1,1:N+1) :: x,y,u
         ! array size issue? your computation uses 1:N+1 but this uses 0:N structure, might be a problem
         ! also you'll need a 3D version of this plotting routine, available in the FORTRAN notes
         ! Local variables

@@ -120,7 +120,7 @@ CONTAINS
                ! result(m,l,o,i,j,k,5)=2.0_RP*result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,1)=0.0_rp
                 result(m,l,o,i,j,k,2)=(gamma-1.0_RP)*((3.0_RP+2.0_RP/10.0_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2*t)))&
-                  *cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2.0_RP*t))*pi/10.0_RP) 
+                  *cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)-2.0_RP*t))*pi/10.0_RP)
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,4)=0.0_rp
                 result(m,l,o,i,j,k,5)=2.0_RP*result(m,l,o,i,j,k,2)!&

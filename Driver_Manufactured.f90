@@ -2,23 +2,25 @@ program Driver_Manufactured
   use Zeitintegration
   implicit none
   REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.1_RP,dt,a
-  INTEGER,parameter                                  :: n=1,anz=3
+  INTEGER,parameter                                  :: n=2,anz=3
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
-  REAL(KIND=RP),DIMENSION(1:64,1:N+1,1:N+1) :: uplot,xplot,yplot,zplot
+  REAL(KIND=RP),DIMENSION(:,:,:),allocatable       :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
   CHARACTER(len=2)                                   :: whichflux='ST',numChar
   CHARACTER(LEN=16) :: fName  = "Movies/UXX.tec"
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
-  INTEGER                                            :: k,i,start=3,m=1,l,o,j
+  INTEGER                                            :: k,i,start=3,m,l,o,j,li=1
   nq=2**(/ (I,I=start,start+anz-1) /)
   DO k=1,anz
     allocate(u(1:Nq(k),1:nq(k),1:1,1:n+1,1:n+1,1:1,1:5),usolution(1:Nq(k),1:nq(k),1:1,1:n+1,1:n+1,1:1,1:5))
+    allocate(uplot(1:nq(k)*Nq(k),1:n+1,1:n+1),xplot(1:nq(k)*Nq(k),1:n+1,1:n+1),yplot(1:nq(k)*Nq(k),1:n+1,1:n+1))
     call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
     dt=CFL/(2*a)*(dx/real(N+1,KIND=RP))
     j=0
+    m=0
     !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     DO while(tend-t>epsilon(dt))
       print*,'t'
@@ -33,10 +35,22 @@ program Driver_Manufactured
       call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux)
       !print*,u(1,1,1,1,:,:,1)
       t=t+dt
-      IF (MODULO(j,50).EQ.0) THEN
+
+      IF (MODULO(j,50).EQ.0 .and. nq(k)==8) THEN
 !!
 !  Print solution every 50 timesteps for movies
 !!
+        do l=1,nq(k)
+            do o=1,nq(k)
+
+                uplot(o+nq(k)*(l-1),:,:)=u(o,l,li,:,:,1,1)
+                xplot(o+nq(k)*(l-1),:,:)=xyz(o,l,li,:,:,1,1)
+                yplot(o+nq(k)*(l-1),:,:)=xyz(o,l,li,:,:,1,2)
+
+            enddo
+        enddo
+
+
             m = m + 1
             WRITE(numChar,'(i2)')m
             IF (m.GE.10) THEN
@@ -46,10 +60,12 @@ program Driver_Manufactured
                fName(10:10)  = numChar(2:2)
             END IF
             open(unit=15,file=fName)
-            call ExportToTecplot_2D(xplot,yplot,uplot,N,64,15,'rho')
+            call ExportToTecplot_2D(xplot,yplot,uplot,N,NQ(k)*nq(k),15,'rho')
             close(15)
+
         endif
       j=j+1
+
     END DO
     ! Berechne Fehler und Loesung
     call computeSolution(usolution,NQ(k),N,t)
@@ -63,15 +79,9 @@ program Driver_Manufactured
    ! Setzte alles wieder auf 0
    deallocate(u,usolution)
     t=0.0_RP
+     deallocate(uplot,xplot,yplot)
   END DO
 
-        do l=1,nq(1)
-            do o=1,nq(1)
-                uplot(o+o*(l-1),:,:)=u(o,l,m,:,:,1,1)
-                xplot(o+o*(l-1),:,:)=xyz(o,l,m,:,:,1,1)
-                yplot(o+o*(l-1),:,:)=xyz(o,l,m,:,:,1,2)
-            enddo
-        enddo
 
  ! call computeEOC(errors,n,nq,anz,EOC)
  ! print*, "EOC"
