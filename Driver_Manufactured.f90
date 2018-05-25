@@ -29,7 +29,7 @@ program Driver_Manufactured
       print*,'sum(energy)'
       print*,sum(U(:,:,:,:,:,:,5))
       call lambdaMaxGlobal(u,a,NQ(k),N)
-      dt=CFL/(3.0_RP*a)*(dx/real(N+1))
+      dt=CFL/(3.0_RP*a)*(dx/real(2*N+1))
       IF(t+dt>tend) dt=tend-t
       call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux)
       ! Ueberpruefen ob Dichte/Druck negativ werden

@@ -290,6 +290,38 @@ CONTAINS
   !      END SELECT
   !    END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE computeGradient(u,n,nqD,du)
+    IMPLICIT NONE
+    !Gleichung 57 im skript
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)       :: u
+    INTEGER      ,INTENT(IN)                                                        :: n,nq
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:n+1,1:n+1)                                :: D
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5,1:3)   :: du
+    !local variables
+    INTEGER                                                                         :: i,j,k,l,m,o,var
+    if (.not.allocated(w)) then
+        print*,'w not allocated'
+        stop
+    endif
+    do m=1:nq
+        do l=1:nq
+            do o=1:nq
+
+                do i=1,n+1
+                    do j=1,n+1
+                        do k=1:n+1
+                            do var=1,5
+                                    du(m,l,o,i,j,k,var,1)=-dot_product(D(i,:),u(:,j,k,o)*w)*1/w(i)*2.0_RP/dx+!surface term
+                                    du(m,l,o,i,j,k,var,2)=-dot_product(D(j,:),u(i,:,k,o)*w)*1/w(j)*2.0_RP/dx+!surface term
+                                    du(m,l,o,i,j,k,var,3)=-dot_product(D(k,:),u(i,j,:,o)*w)*1/w(k)*2.0_RP/dx+!surface term
+                            end do
+                        end do
+                    end do
+                end do
+            end do
+        enddo
+    end do
+  END SUBROUTINE
   SUBROUTINE computeviscosFlux(u,du,dir,n,result)
     !computes the viscos part of the flux analytically
     IMPLICIT NONE
