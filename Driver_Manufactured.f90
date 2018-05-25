@@ -1,8 +1,8 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.07_RP,dt,a
-  INTEGER,parameter                                  :: n=2,anz=5
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.1_RP,CFL=0.05_RP,dt,a
+  INTEGER,parameter                                  :: n=3,anz=3
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(1:6**3,1:N+1,1:N+1,1:N+1) :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
@@ -16,7 +16,7 @@ program Driver_Manufactured
     call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
-    dt=CFL/(3*a)*(dx/real(N+1,KIND=RP))
+    dt=CFL/(3.0_RP*a)*(dx/real(N+1,KIND=RP))
     !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     DO while(tend-t>epsilon(dt))
       print*,'t'
@@ -26,7 +26,7 @@ program Driver_Manufactured
       print*,'sum(energy)'
       print*,sum(U(:,:,:,:,:,:,5))
       call lambdaMaxGlobal(u,a,NQ(k),N)
-      dt=CFL/(3*a)*(dx/real(N+1))
+      dt=CFL/(3.0_RP*a)*(dx/real(N+1))
       IF(t+dt>tend) dt=tend-t
       call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux)
       ! Ueberpruefen ob Dichte/Druck negativ werden
