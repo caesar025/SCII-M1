@@ -99,7 +99,7 @@ CONTAINS
     INTEGER      ,INTENT(IN)                                        :: n,NQ
     REAL(KIND=RP),INTENT(IN)                                        :: t                    ! Startzeit
     REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5) :: result                       ! Quellterme
-    REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5               ! Hilfsvariablen
+    REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5,ro,rox,Px               ! Hilfsvariablenh
     INTEGER                                                         :: o,l,m,k,j,i
 
 
@@ -115,13 +115,22 @@ CONTAINS
           DO k=1,n+1
             DO j=1,n+1
               DO i=1,n+1
-                result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
-                result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
-                  +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                ro=2.0_RP+1.0_RP/10.0_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                rox=cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))*pi/10.0_RP
+                Px=(gamma-1.0_RP)*((2.0_RP*ro-3.0_RP/2.0_RP)*rox)
+
+                result(m,l,o,i,j,k,1)=rox
+                result(m,l,o,i,j,k,2)=Px+rox
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
-                result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
-                  +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                result(m,l,o,i,j,k,5)=2.0_RP*ro*rox+3.0_RP*Px
+               ! result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+               ! result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
+               !   +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+               ! result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
+               ! result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
+               ! result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
+               !   +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
               ENDDO
             ENDDO
           ENDDO
