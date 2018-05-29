@@ -74,7 +74,7 @@ CONTAINS
   END FUNCTION R
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  FUNCTION Rmanu(u,N,NQ,D,t,whichflux,dt) result(solution)
+  FUNCTION Rmanu(u,N,NQ,D,t,whichflux,vis,dt) result(solution)
     ! Setze Rechteseite zusammen mit manufactuerd solution
     IMPLICIT NONE
     INTEGER, INTENT(IN)                                                        :: n,NQ
@@ -82,26 +82,38 @@ CONTAINS
     REAL(KIND=RP), DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5)           :: res                       ! Quellterme
     REAL(KIND=RP), INTENT(IN), DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5) :: u             ! U
     REAL(KIND=RP),INTENT(IN),DIMENSION(1:N+1,1:N+1)                                    :: D                        ! Diff-Matrix
-    CHARACTER(len=2),INTENT(IN)                                                :: whichflux
+    CHARACTER(len=2),INTENT(IN)                                                :: whichflux,vis
     REAL(KIND=RP),INTENT(IN)                                                   :: t,dt                    ! Startzeit,zeitschritt
-    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3
+    REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3,dux,duy,duz,L1vis,L2vis,L3vis
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
-    call Residuum(NQ,N,t,res)
+    SELECT CASE(vis)
+    CASE('AD')
     solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
-    solution=solution+res !dt*res noch mal ueberpruefen !!!!
+    call Residuum(NQ,N,t,vis,res)
+    solution=solution!+res !dt*res noch mal ueberpruefen !!!!
+    CASE('VI')
+    solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
+    call Residuum(NQ,N,t,vis,res)
+    call computeGradient(u,n,nq,D,dux,duy,duz)
+    call computeLviscous(u,dux,duy,duz,D,1,N,NQ,L1vis)
+    call computeLviscous(u,dux,duy,duz,D,2,N,NQ,L2vis)
+    call computeLviscous(u,dux,duy,duz,D,3,N,NQ,L3vis)
+    solution=solution+res
+    solution=solution-8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
+    END SELECT
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE Residuum (NQ,N,t,result)
+  SUBROUTINE Residuum (NQ,N,t,vis,result)
     ! Berechne Quellterme
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                        :: n,NQ
     REAL(KIND=RP),INTENT(IN)                                        :: t                    ! Startzeit
     REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5) :: result                       ! Quellterme
-    REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5,ro,rox,Px               ! Hilfsvariablenh
+    CHARACTER(len=2),INTENT(IN)                                     :: vis
+    REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5,ro,rox,Px               ! Hilfsvariablen
     INTEGER                                                         :: o,l,m,k,j,i
-
 
     c1=pi/10.0_RP
     c2=-1.0_RP/5.0_RP*pi+pi/20.0_rp*(1.0_rp+5.0_RP*gamma)
@@ -290,40 +302,261 @@ CONTAINS
   !      END SELECT
   !    END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE computeGradient(u,n,nqD,du)
+  SUBROUTINE computeGradient(u,n,nq,D,dux,duy,duz)
     IMPLICIT NONE
     !Gleichung 57 im skript
-    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)       :: u
     INTEGER      ,INTENT(IN)                                                        :: n,nq
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)       :: u
     REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:n+1,1:n+1)                                :: D
-    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5,1:3)   :: du
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)       :: dux,duy,duz
     !local variables
     INTEGER                                                                         :: i,j,k,l,m,o,var
     if (.not.allocated(w)) then
         print*,'w not allocated'
         stop
     endif
-    do m=1:nq
-        do l=1:nq
-            do o=1:nq
+    do m=1,nq
+        do l=1,nq
+            do o=1,nq
 
                 do i=1,n+1
                     do j=1,n+1
-                        do k=1:n+1
+                        do k=1,n+1
                             do var=1,5
-                                    du(m,l,o,i,j,k,var,1)=-dot_product(D(i,:),u(:,j,k,o)*w)*1/w(i)*2.0_RP/dx+!surface term
-                                    du(m,l,o,i,j,k,var,2)=-dot_product(D(j,:),u(i,:,k,o)*w)*1/w(j)*2.0_RP/dx+!surface term
-                                    du(m,l,o,i,j,k,var,3)=-dot_product(D(k,:),u(i,j,:,o)*w)*1/w(k)*2.0_RP/dx+!surface term
-                            end do
-                        end do
-                    end do
-                end do
-            end do
-        enddo
-    end do
+! TODO (dorn_ni#1#): maybe put dux duy duz together but than rank >7. check for compiler version on cheops
+
+                                    dux(m,l,o,i,j,k,var)=-dot_product(D(i,:),u(m,l,o,:,j,k,var)*w)*1.0_RP/w(i)*2.0_RP/dx!+surface term
+                                    duy(m,l,o,i,j,k,var)=-dot_product(D(j,:),u(m,l,o,i,:,k,var)*w)*1.0_RP/w(j)*2.0_RP/dx!+surface term
+                                    duz(m,l,o,i,j,k,var)=-dot_product(D(k,:),u(m,l,o,i,j,:,var)*w)*1.0_RP/w(k)*2.0_RP/dx!+surface term
+                            end do !var
+                        end do !k
+                    end do !j
+                end do !i
+                !surfaceterms and boundary conditions
+                !x-direction
+                if(m==1) then
+                dux(m,l,o,1,:,:,:)=(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,1,:,:,:)
+                dux(m,l,o,N+1,:,:,:)=-(u(nq,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,N+1,:,:,:)
+                elseif(m==nq) then
+                dux(m,l,o,1,:,:,:)=(u(m,l,o,N+1,:,:,:)+u(1,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,1,:,:,:)
+                dux(m,l,o,N+1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,N+1,:,:,:)
+                else
+                dux(m,l,o,1,:,:,:)=(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,1,:,:,:)
+                dux(m,l,o,N+1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,N+1,:,:,:)
+                end if
+                !y-direction
+                if(l==1) then
+                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=-(u(m,nq,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                elseif(l==nq) then
+                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,N+1,:,:)+u(m,1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                else
+                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                end if
+                !z-direction
+                if(o==1) then
+                duz(m,l,o,:,:,1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,1,:)
+                duz(m,l,o,:,:,N+1,:)=-(u(m,l,nq,:,:,N+1,:)+u(m,l,o,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,N+1,:)
+                elseif(o==nq) then
+                duz(m,l,o,:,:,1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,1,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,1,:)
+                duz(m,l,o,:,:,N+1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,N+1,:)
+                else
+                duz(m,l,o,:,:,1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,1,:)
+                duz(m,l,o,:,:,N+1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,N+1,:)
+                end if
+            end do !o
+        enddo!l
+    end do!m
   END SUBROUTINE
-  SUBROUTINE computeviscosFlux(u,du,dir,n,result)
-    !computes the viscos part of the flux analytically
+  SUBROUTINE computeLviscous(u,dux,duy,duz,D,dir,N,NQ,result)
+    !puts all of the viscous components together
+    IMPLICIT NONE
+    INTEGER      ,INTENT(IN)                                                  :: N,NQ
+    INTEGER      ,INTENT(IN)                                                  :: dir
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u,dux,duy,duz
+    REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:N+1,1:N+1)                          :: D
+    !u DIMENSIONs:(nummer zelle x,zelle y,zelle z,x,y,z,variable)
+    REAL(KIND=RP),INTENT(OUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: result
+    !local Variables
+    INTEGER                                  :: var,k,j,i,o,l,m
+    REAL(KIND=RP),DIMENSION(1:N+1,1:5)       :: Fviscous
+    REAL(KIND=RP),DIMENSION(1:N+1,1:N+1,1:5) :: uR,uL,fvisl1,fvisl2,fvisr1,fvisr2
+    REAL(KIND=RP),DIMENSION(1:n+1,1:5,1:3)   :: du
+    REAL(KIND=RP),DIMENSION(1:n+1,1:n+1,1:5,1:3)   :: duRandl,duRandr
+
+    SELECT CASE(dir)
+    CASE(1)
+      DO o=1,NQ
+        DO l=1,NQ
+          DO m=1,NQ
+            DO k=1,N+1
+              DO j=1,N+1
+                DO i=1,N+1
+                  du(:,:,1)=dux(m,l,o,:,j,k,:)
+                  du(:,:,2)=duy(m,l,o,:,j,k,:)
+                  du(:,:,3)=duz(m,l,o,:,j,k,:)
+                  CALL computeviscousFlux(u(m,l,o,:,j,k,:),du,dir,n,Fviscous)
+                  DO var=1,5 !! besser
+                    result(m,l,o,i,j,k,var)=dot_product(D(i,:),Fviscous(:,var)*w)*1.0_RP/w(i)
+                  ENDDO ! var
+                ENDDO ! i
+              ENDDO ! j
+            ENDDO ! k
+            !Randbedingungen
+            IF (m==1) THEN
+              uL=u(nq,l,o,N+1,:,:,:)
+              duRandl(:,:,:,1)=dux(nq,l,o,N+1,:,:,:)
+              duRandl(:,:,:,2)=duy(nq,l,o,N+1,:,:,:)
+              duRandl(:,:,:,3)=duz(nq,l,o,N+1,:,:,:)
+            ELSE
+              uL=u(m-1,l,o,N+1,:,:,:)
+              duRandl(:,:,:,1)=dux(m-1,l,o,N+1,:,:,:)
+              duRandl(:,:,:,2)=duy(m-1,l,o,N+1,:,:,:)
+              duRandl(:,:,:,3)=duz(m-1,l,o,N+1,:,:,:)
+            ENDIF
+            IF (m==NQ) THEN
+              uR=u(1,l,o,1,:,:,:)
+              duRandr(:,:,:,1)=dux(1,l,o,1,:,:,:)
+              duRandr(:,:,:,2)=duy(1,l,o,1,:,:,:)
+              duRandr(:,:,:,3)=duz(1,l,o,1,:,:,:)
+            ELSE
+              uR=u(m+1,l,o,1,:,:,:)
+              duRandr(:,:,:,1)=dux(m+1,l,o,1,:,:,:)
+              duRandr(:,:,:,2)=duy(m+1,l,o,1,:,:,:)
+              duRandr(:,:,:,3)=duz(m+1,l,o,1,:,:,:)
+            ENDIF
+            CALL computeviscousFluxRand(uL,duRandl,dir,n,Fvisl1)
+            CALL computeviscousFluxRand(uR,duRandr,dir,n,Fvisr2)
+            duRandl(:,:,:,1)=dux(m,l,o,N+1,:,:,:)
+            duRandl(:,:,:,2)=duy(m,l,o,N+1,:,:,:)
+            duRandl(:,:,:,3)=duz(m,l,o,N+1,:,:,:)
+            duRandr(:,:,:,1)=dux(m,l,o,1,:,:,:)
+            duRandr(:,:,:,2)=duy(m,l,o,1,:,:,:)
+            duRandr(:,:,:,3)=duz(m,l,o,1,:,:,:)
+            CALL computeviscousFluxRand(u(m,l,o,N+1,:,:,:),duRandl,dir,n,Fvisl2)
+            CALL computeviscousFluxRand(u(m,l,o,1,:,:,:),duRandr,dir,n,Fvisr1)
+            result(m,l,o,1,:,:,:)=result(m,l,o,1,:,:,:)+(Fvisl1+Fvisr1)*0.5_RP
+            result(m,l,o,N+1,:,:,:)=result(m,l,o,N+1,:,:,:)-(Fvisl2+Fvisr2)*0.5_RP
+          ENDDO ! m
+        ENDDO ! l
+      ENDDO ! o
+    CASE(2)
+       DO o=1,NQ
+        DO l=1,NQ
+          DO m=1,NQ
+            DO k=1,N+1
+              DO j=1,N+1
+                DO i=1,N+1
+                  du(:,:,1)=dux(m,l,o,i,:,k,:)
+                  du(:,:,2)=duy(m,l,o,i,:,k,:)
+                  du(:,:,3)=duz(m,l,o,i,:,k,:)
+                  CALL computeviscousFlux(u(m,l,o,i,:,k,:),du,dir,n,Fviscous)
+                  DO var=1,5 !! besser
+                    result(m,l,o,i,j,k,var)=dot_product(D(j,:),Fviscous(:,var)*w)*1.0_RP/w(j)
+                  ENDDO ! var
+                ENDDO ! i
+              ENDDO ! j
+            ENDDO ! k
+            !Randbedingungen
+            IF (l==1) THEN
+              uL=u(m,nq,o,:,N+1,:,:)
+              duRandl(:,:,:,1)=dux(m,nq,o,:,N+1,:,:)
+              duRandl(:,:,:,2)=duy(m,nq,o,:,N+1,:,:)
+              duRandl(:,:,:,3)=duz(m,nq,o,:,N+1,:,:)
+            ELSE
+              uL=u(m,l-1,o,:,N+1,:,:)
+              duRandl(:,:,:,1)=dux(m,l-1,o,:,N+1,:,:)
+              duRandl(:,:,:,2)=duy(m,l-1,o,:,N+1,:,:)
+              duRandl(:,:,:,3)=duz(m,l-1,o,:,N+1,:,:)
+            ENDIF
+            IF (l==NQ) THEN
+              uR=u(m,1,o,:,1,:,:)
+              duRandr(:,:,:,1)=dux(m,1,o,:,1,:,:)
+              duRandr(:,:,:,2)=duy(m,1,o,:,1,:,:)
+              duRandr(:,:,:,3)=duz(m,1,o,:,1,:,:)
+            ELSE
+              uR=u(m,l+1,o,:,1,:,:)
+              duRandr(:,:,:,1)=dux(m,l+1,o,:,1,:,:)
+              duRandr(:,:,:,2)=duy(m,l+1,o,:,1,:,:)
+              duRandr(:,:,:,3)=duz(m,l+1,o,:,1,:,:)
+            ENDIF
+            CALL computeviscousFluxRand(uL,duRandl,dir,n,Fvisl1)
+            CALL computeviscousFluxRand(uR,duRandr,dir,n,Fvisr2)
+            duRandl(:,:,:,1)=dux(m,l,o,:,N+1,:,:)
+            duRandl(:,:,:,2)=duy(m,l,o,:,N+1,:,:)
+            duRandl(:,:,:,3)=duz(m,l,o,:,N+1,:,:)
+            duRandr(:,:,:,1)=dux(m,l,o,:,1,:,:)
+            duRandr(:,:,:,2)=duy(m,l,o,:,1,:,:)
+            duRandr(:,:,:,3)=duz(m,l,o,:,1,:,:)
+            CALL computeviscousFluxRand(u(m,l,o,:,N+1,:,:),duRandl,dir,n,Fvisl2)
+            CALL computeviscousFluxRand(u(m,l,o,:,1,:,:),duRandr,dir,n,Fvisr1)
+            result(m,l,o,:,1,:,:)=result(m,l,o,:,1,:,:)+(Fvisl1+Fvisr1)*0.5_RP
+            result(m,l,o,:,N+1,:,:)=result(m,l,o,:,N+1,:,:)-(Fvisl2+Fvisr2)*0.5_RP
+          ENDDO ! m
+        ENDDO ! l
+      ENDDO ! o
+    CASE(3)
+      DO o=1,NQ
+        DO l=1,NQ
+          DO m=1,NQ
+            DO k=1,N+1
+              DO j=1,N+1
+                DO i=1,N+1
+                  du(:,:,1)=dux(m,l,o,i,j,:,:)
+                  du(:,:,2)=duy(m,l,o,i,j,:,:)
+                  du(:,:,3)=duz(m,l,o,i,j,:,:)
+                  CALL computeviscousFlux(u(m,l,o,i,j,:,:),du,dir,n,Fviscous)
+                  DO var=1,5 !! besser
+                    result(m,l,o,i,j,k,var)=dot_product(D(k,:),Fviscous(:,var)*w)*1.0_RP/w(k)
+                  ENDDO ! var
+                ENDDO ! i
+              ENDDO ! j
+            ENDDO ! k
+            !Randbedingungen
+            IF (o==1) THEN
+              uL=u(m,l,nq,:,:,N+1,:)
+              duRandl(:,:,:,1)=dux(m,l,nq,:,:,N+1,:)
+              duRandl(:,:,:,2)=duy(m,l,nq,:,:,N+1,:)
+              duRandl(:,:,:,3)=duz(m,l,nq,:,:,N+1,:)
+            ELSE
+              uL=u(m,l,o-1,:,:,N+1,:)
+              duRandl(:,:,:,1)=dux(m,l,o-1,:,:,N+1,:)
+              duRandl(:,:,:,2)=duy(m,l,o-1,:,:,N+1,:)
+              duRandl(:,:,:,3)=duz(m,l,o-1,:,:,N+1,:)
+            ENDIF
+            IF (o==NQ) THEN
+              uR=u(m,l,1,:,:,1,:)
+              duRandr(:,:,:,1)=dux(m,l,1,:,:,1,:)
+              duRandr(:,:,:,2)=duy(m,l,1,:,:,1,:)
+              duRandr(:,:,:,3)=duz(m,l,1,:,:,1,:)
+            ELSE
+              uR=u(m,l,o+1,:,:,1,:)
+              duRandr(:,:,:,1)=dux(m,l,o+1,:,:,1,:)
+              duRandr(:,:,:,2)=duy(m,l,o+1,:,:,1,:)
+              duRandr(:,:,:,3)=duz(m,l,o+1,:,:,1,:)
+            ENDIF
+            CALL computeviscousFluxRand(uL,duRandl,dir,n,Fvisl1)
+            CALL computeviscousFluxRand(uR,duRandr,dir,n,Fvisr2)
+            duRandl(:,:,:,1)=dux(m,l,o,:,:,N+1,:)
+            duRandl(:,:,:,2)=duy(m,l,o,:,:,N+1,:)
+            duRandl(:,:,:,3)=duz(m,l,o,:,:,N+1,:)
+            duRandr(:,:,:,1)=dux(m,l,o,:,:,1,:)
+            duRandr(:,:,:,2)=duy(m,l,o,:,:,1,:)
+            duRandr(:,:,:,3)=duz(m,l,o,:,:,1,:)
+            CALL computeviscousFluxRand(u(m,l,o,:,:,N+1,:),duRandl,dir,n,Fvisl2)
+            CALL computeviscousFluxRand(u(m,l,o,:,:,1,:),duRandr,dir,n,Fvisr1)
+            result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)+(Fvisl1+Fvisr1)*0.5_RP
+            result(m,l,o,:,:,N+1,:)=result(m,l,o,:,:,N+1,:)-(Fvisl2+Fvisr2)*0.5_RP
+          ENDDO ! m
+        ENDDO ! l
+      ENDDO ! o
+    END SELECT
+  END SUBROUTINE computeLviscous
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE computeviscousFluxRand(u,du,dir,n,result)
+    !computes the viscous part of the flux analytically
     IMPLICIT NONE
     INTEGER       ,INTENT(IN)                               :: N,dir
     REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)   :: u
@@ -368,7 +601,56 @@ CONTAINS
       result(:,:,5)=mu*(u(:,:,4)/u(:,:,1)*(2.0_RP*dv3(:,:,3)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
                     u(:,:,2)/u(:,:,1)*(dv1(:,:,3)+dv3(:,:,1))+u(:,:,3)/u(:,:,1)*(dv2(:,:,3)+dv3(:,:,2)))+mu/(Pr*Rkonst)*dTemp(:,:,3)
     END SELECT
-  END SUBROUTINE computeviscosFlux
+  END SUBROUTINE computeviscousFluxRand
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE computeviscousFlux(u,du,dir,n,result)
+    !computes the viscous part of the flux analytically
+    IMPLICIT NONE
+    INTEGER       ,INTENT(IN)                               :: N,dir
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:5)   :: u
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:5,1:3)   :: du !(Punkte x Variable x Ableitungsrichtung)
+    REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:5)   :: result
+    REAL(KIND=RP)             ,DIMENSION(1:N+1)       ::P
+    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:3)   ::dTemp,dv1,dv2,dv3
+    result(:,1)=0.0_RP
+    p=(gamma-1.0_RP)*(u(:,5)-0.5_RP*(u(:,2)*u(:,2)+u(:,3)*u(:,3)+u(:,4)*u(:,4))/u(:,1))
+    dTemp(:,1)=((gamma-1.0_RP)/u(:,1)**2)*(du(:,5,1)*u(:,1)-u(:,5)*du(:,1,1)-1.0_RP/u(:,1)**2*&
+    ((du(:,2,1)+du(:,3,1)+du(:,4,1))*u(:,1)**2-(u(:,2)**2+u(:,3)**2+u(:,4)**2)*du(:,1,1)))
+    dTemp(:,2)=((gamma-1.0_RP)/u(:,1)**2)*(du(:,5,2)*u(:,1)-u(:,5)*du(:,1,2)-1.0_RP/u(:,1)**2*&
+    ((du(:,2,2)+du(:,3,2)+du(:,4,2))*u(:,1)**2-(u(:,2)**2+u(:,3)**2+u(:,4)**2)*du(:,1,2)))
+    dTemp(:,3)=((gamma-1.0_RP)/u(:,1)**2)*(du(:,5,3)*u(:,1)-u(:,5)*du(:,1,3)-1.0_RP/u(:,1)**2*&
+    ((du(:,2,3)+du(:,3,3)+du(:,4,3))*u(:,1)**2-(u(:,2)**2+u(:,3)**2+u(:,4)**2)*du(:,1,3)))
+    dv1(:,1)=(du(:,1,1)*u(:,2)/u(:,1))/u(:,1)
+    dv1(:,2)=(du(:,1,2)*u(:,2)/u(:,1))/u(:,1)
+    dv1(:,3)=(du(:,1,3)*u(:,2)/u(:,1))/u(:,1)
+    dv2(:,1)=(du(:,1,1)*u(:,3)/u(:,1))/u(:,1)
+    dv2(:,2)=(du(:,1,2)*u(:,3)/u(:,1))/u(:,1)
+    dv2(:,3)=(du(:,1,3)*u(:,3)/u(:,1))/u(:,1)
+    dv3(:,1)=(du(:,1,1)*u(:,4)/u(:,1))/u(:,1)
+    dv3(:,2)=(du(:,1,2)*u(:,4)/u(:,1))/u(:,1)
+    dv3(:,3)=(du(:,1,3)*u(:,4)/u(:,1))/u(:,1)
+    SELECT CASE(dir)
+    CASE(1)
+      result(:,2)=mu*(2*du(:,1,1)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
+      result(:,3)=mu*(dv1(:,2)+dv2(:,1))
+      result(:,4)=mu*(dv1(:,3)+dv3(:,1))
+      result(:,5)=mu*(u(:,2)/u(:,1)*(2.0_rp*dv2(:,2)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
+                    u(:,3)/u(:,1)*(dv2(:,1)+dv1(:,2))+u(:,4)/u(:,1)*(dv3(:,1)+dv1(:,3)))+mu/(Pr*Rkonst)*dTemp(:,1)
+    CASE(2)
+      result(:,2)=mu*(dv1(:,2)+dv2(:,1))
+      result(:,3)=mu*(2.0_RP*dv2(:,2)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
+      result(:,4)=mu*(dv2(:,3)+dv3(:,2))
+      result(:,5)=mu*(u(:,3)/u(:,1)*(2.0_RP*dv2(:,2)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
+                    u(:,2)/u(:,1)*(dv2(:,1)+dv1(:,2))+u(:,4)/u(:,1)*(dv3(:,2)+dv2(:,3)))+mu/(Pr*Rkonst)*dTemp(:,2)
+    CASE(3)
+      result(:,2)=mu*(dv1(:,3)+dv3(:,1))
+      result(:,3)=mu*(dv2(:,3)+dv3(:,2))
+      result(:,4)=mu*(2.0_RP*dv3(:,3)+2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
+      result(:,5)=mu*(u(:,4)/u(:,1)*(2.0_RP*dv3(:,3)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
+                    u(:,2)/u(:,1)*(dv1(:,3)+dv3(:,1))+u(:,3)/u(:,1)*(dv2(:,3)+dv3(:,2)))+mu/(Pr*Rkonst)*dTemp(:,3)
+    END SELECT
+  END SUBROUTINE computeviscousFlux
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeFsharp(u1,u2,dir,whichflux,result,N)
     !SUBROUTINE computes the Volume flux Fsharp
     IMPLICIT NONE
@@ -642,11 +924,11 @@ CONTAINS
     END SELECT
   END SUBROUTINE calculateEulerRandFlux
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE RungeKutta5explizit(ustar,nq,n,numvar,dt,Dval,t,whichflux)
+  SUBROUTINE RungeKutta5explizit(ustar,nq,n,numvar,dt,Dval,t,whichflux,vis)
     IMPLICIT NONE
     !ustar=bekannte Werte
     INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq
-    CHARACTER(len=*),INTENT(IN)                                                      :: whichflux
+    CHARACTER(len=2),INTENT(IN)                                                      :: whichflux,vis
     REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                               :: Dval
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:numvar) :: ustar
     !local
@@ -654,7 +936,7 @@ CONTAINS
     INTEGER                                                                 :: step
     REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
     REAL(KIND=RP),INTENT(IN)                                                :: dt,t
-    g=Rmanu(ustar,n,nq,Dval,t,whichflux,dt)
+    g=Rmanu(ustar,n,nq,Dval,t,whichflux,vis,dt)
     !a(1)=0.0_RP
     !b(1)=0.0_RP
     !c(1)=1432997174477.0_RP/9575080441755.0_RP
@@ -687,7 +969,7 @@ CONTAINS
 
 
     DO step=1,5
-      g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux,b(step)*dt)
+      g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux,vis,b(step)*dt)
       ustar=ustar+c(step)*dt*g
     ENDDO ! step
   END SUBROUTINE RungeKutta5explizit

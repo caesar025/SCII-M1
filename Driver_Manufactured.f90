@@ -2,15 +2,15 @@ program Driver_Manufactured
   use Zeitintegration
   implicit none
   REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.3_RP,dt,a
-  INTEGER,parameter                                  :: n=3,anz=4
+  INTEGER,parameter                                  :: n=2,anz=2
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='ST',numChar
+  CHARACTER(len=2)                                   :: whichflux='ST',numChar,vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
    CHARACTER(LEN=16) :: fName  = "Movies/UXX.tec"
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
-  INTEGER                                            :: k,i,start=3,m=0,l,o,li=1,j=0
+  INTEGER                                            :: k,i,start=2,m=0,l,o,li=1,j=0
   nq=2*(/ (I,I=start,start+anz-1) /)
   DO k=1,anz
     allocate(u(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5),usolution(1:Nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5))
@@ -19,7 +19,7 @@ program Driver_Manufactured
     call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
-    dt=CFL/(3.0_RP*a)*(dx/real(N+1,KIND=RP))
+    dt=CFL/(3.0_RP*a)*(dx/real(N+1,KIND=RP))**2
     !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     DO while(tend-t>epsilon(dt))
       print*,'t'
@@ -31,13 +31,13 @@ program Driver_Manufactured
       call lambdaMaxGlobal(u,a,NQ(k),N)
       dt=CFL/(3.0_RP*a)*(dx/real(2*N+1))
       IF(t+dt>tend) dt=tend-t
-      call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux)
+      call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux,vis)
       ! Ueberpruefen ob Dichte/Druck negativ werden
       IF (ANY(u(:,:,:,:,:,:,1) < 0)) print*, 'Druck/Dichte sind negativ!'
       !print*,u(1,1,1,1,:,:,1)
           t=t+dt
 
-      IF (MODULO(j,20).EQ.0 .and. nq(k)==6) THEN
+      IF (MODULO(j,10).EQ.0 .and. nq(k)==4) THEN
 !!
 !  Print solution every 50 timesteps for movies
 !!
