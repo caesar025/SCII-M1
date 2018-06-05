@@ -111,15 +111,15 @@ CONTAINS
     INTEGER      ,INTENT(IN)                                        :: n,NQ
     REAL(KIND=RP),INTENT(IN)                                        :: t                    ! Startzeit
     REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5) :: result                       ! Quellterme
-    CHARACTER(len=2),INTENT(IN)                                     :: vis
-    REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5,ro,rox,Px               ! Hilfsvariablen
+    CHARACTER(len=2),INTENT(IN)                                     :: vis                !Schalter ob viskos oder advektiv
+    REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5,ro,rox,Px,p               ! Hilfsvariablen
     INTEGER                                                         :: o,l,m,k,j,i
 
     c1=pi/10.0_RP
     c2=-1.0_RP/5.0_RP*pi+pi/20.0_rp*(1.0_rp+5.0_RP*gamma)
     c3=pi/100.0_RP*(gamma-1)
     c4=(-16.0_RP*pi+pi*(9.0_RP+15.0_RP*gamma))/20.0_RP
-    c5=(3*pi*gamma-2*pi)/100.0_RP
+    c5=(3*pi*gamma-2.0*pi)/100.0_RP
 
     DO o=1,nq
       DO l=1,nq
@@ -130,7 +130,7 @@ CONTAINS
                 ro=2.0_RP+1.0_RP/10.0_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
                 rox=cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))*pi/10.0_RP
                 Px=(gamma-1.0_RP)*((2.0_RP*ro-3.0_RP/2.0_RP)*rox)
-
+                P=(gamma-1.0_RP)*(ro**2-3.0_RP/2.0_RP*ro)
                 result(m,l,o,i,j,k,1)=rox
                 result(m,l,o,i,j,k,2)=Px+rox
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
@@ -143,6 +143,10 @@ CONTAINS
                ! result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
                ! result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
                !   +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                if (vis=='VI') then
+                  result(m,l,o,i,j,k,5)=result(m,l,o,i,j,k,5)+3.0_RP*mu/(Pr*Rkonst)*(Px*ro-rox*p)/(ro**2)
+
+               end if
               ENDDO
             ENDDO
           ENDDO
@@ -563,15 +567,15 @@ CONTAINS
     REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5,1:3)   :: du !(Punkte x Punkte x Variable x Ableitungsrichtung)
     REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:n+1,1:5)   :: result
     REAL(KIND=RP)             ,DIMENSION(1:N+1,1:N+1)       ::P
-    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:n+1,1:3)   ::dTemp,dv1,dv2,dv3
+    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:n+1,1:3)   ::dTemp,dv1,dv2,dv3,dP
     result(:,:,1)=0.0_RP
     p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)*u(:,:,2)+u(:,:,3)*u(:,:,3)+u(:,:,4)*u(:,:,4))/u(:,:,1))
-    dTemp(:,:,1)=((gamma-1.0_RP)/u(:,:,1)**2)*(du(:,:,5,1)*u(:,:,1)-u(:,:,5)*du(:,:,1,1)-1.0_RP/u(:,:,1)**2*&
-    ((du(:,:,2,1)+du(:,:,3,1)+du(:,:,4,1))*u(:,:,1)**2-(u(:,:,2)**2+u(:,:,3)**2+u(:,:,4)**2)*du(:,:,1,1)))
-    dTemp(:,:,2)=((gamma-1.0_RP)/u(:,:,1)**2)*(du(:,:,5,2)*u(:,:,1)-u(:,:,5)*du(:,:,1,2)-1.0_RP/u(:,:,1)**2*&
-    ((du(:,:,2,2)+du(:,:,3,2)+du(:,:,4,2))*u(:,:,1)**2-(u(:,:,2)**2+u(:,:,3)**2+u(:,:,4)**2)*du(:,:,1,2)))
-    dTemp(:,:,3)=((gamma-1.0_RP)/u(:,:,1)**2)*(du(:,:,5,3)*u(:,:,1)-u(:,:,5)*du(:,:,1,3)-1.0_RP/u(:,:,1)**2*&
-    ((du(:,:,2,3)+du(:,:,3,3)+du(:,:,4,3))*u(:,:,1)**2-(u(:,:,2)**2+u(:,:,3)**2+u(:,:,4)**2)*du(:,:,1,3)))
+    dP(:,:,1)=(gamma-1.0_RP)*du(:,:,1,1)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
+    dP(:,:,2)=(gamma-1.0_RP)*du(:,:,1,2)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
+    dP(:,:,3)=(gamma-1.0_RP)*du(:,:,1,3)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
+    dTemp(:,:,1)=(dp(:,:,1)*u(:,:,1)-du(:,:,1,1)*p)/u(:,:,1)**2
+    dTemp(:,:,2)=(dp(:,:,2)*u(:,:,1)-du(:,:,1,2)*p)/u(:,:,1)**2
+    dTemp(:,:,3)=(dp(:,:,3)*u(:,:,1)-du(:,:,1,3)*p)/u(:,:,1)**2
     dv1(:,:,1)=(du(:,:,1,1)*u(:,:,2)/u(:,:,1))/u(:,:,1)
     dv1(:,:,2)=(du(:,:,1,2)*u(:,:,2)/u(:,:,1))/u(:,:,1)
     dv1(:,:,3)=(du(:,:,1,3)*u(:,:,2)/u(:,:,1))/u(:,:,1)
@@ -597,7 +601,7 @@ CONTAINS
     CASE(3)
       result(:,:,2)=mu*(dv1(:,:,3)+dv3(:,:,1))
       result(:,:,3)=mu*(dv2(:,:,3)+dv3(:,:,2))
-      result(:,:,4)=mu*(2.0_RP*dv3(:,:,3)+2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
+      result(:,:,4)=mu*(2.0_RP*dv3(:,:,3)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
       result(:,:,5)=mu*(u(:,:,4)/u(:,:,1)*(2.0_RP*dv3(:,:,3)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
                     u(:,:,2)/u(:,:,1)*(dv1(:,:,3)+dv3(:,:,1))+u(:,:,3)/u(:,:,1)*(dv2(:,:,3)+dv3(:,:,2)))+mu/(Pr*Rkonst)*dTemp(:,:,3)
     END SELECT
@@ -611,15 +615,15 @@ CONTAINS
     REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:5,1:3)   :: du !(Punkte x Variable x Ableitungsrichtung)
     REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:5)   :: result
     REAL(KIND=RP)             ,DIMENSION(1:N+1)       ::P
-    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:3)   ::dTemp,dv1,dv2,dv3
+    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:3)   ::dTemp,dv1,dv2,dv3,dp
     result(:,1)=0.0_RP
     p=(gamma-1.0_RP)*(u(:,5)-0.5_RP*(u(:,2)*u(:,2)+u(:,3)*u(:,3)+u(:,4)*u(:,4))/u(:,1))
-    dTemp(:,1)=((gamma-1.0_RP)/u(:,1)**2)*(du(:,5,1)*u(:,1)-u(:,5)*du(:,1,1)-1.0_RP/u(:,1)**2*&
-    ((du(:,2,1)+du(:,3,1)+du(:,4,1))*u(:,1)**2-(u(:,2)**2+u(:,3)**2+u(:,4)**2)*du(:,1,1)))
-    dTemp(:,2)=((gamma-1.0_RP)/u(:,1)**2)*(du(:,5,2)*u(:,1)-u(:,5)*du(:,1,2)-1.0_RP/u(:,1)**2*&
-    ((du(:,2,2)+du(:,3,2)+du(:,4,2))*u(:,1)**2-(u(:,2)**2+u(:,3)**2+u(:,4)**2)*du(:,1,2)))
-    dTemp(:,3)=((gamma-1.0_RP)/u(:,1)**2)*(du(:,5,3)*u(:,1)-u(:,5)*du(:,1,3)-1.0_RP/u(:,1)**2*&
-    ((du(:,2,3)+du(:,3,3)+du(:,4,3))*u(:,1)**2-(u(:,2)**2+u(:,3)**2+u(:,4)**2)*du(:,1,3)))
+    dP(:,1)=(gamma-1.0_RP)*du(:,1,1)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
+    dP(:,2)=(gamma-1.0_RP)*du(:,1,2)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
+    dP(:,3)=(gamma-1.0_RP)*du(:,1,3)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
+    dTemp(:,1)=(dp(:,1)*u(:,1)-du(:,1,1)*p)/u(:,1)**2
+    dTemp(:,2)=(dp(:,2)*u(:,1)-du(:,1,2)*p)/u(:,1)**2
+    dTemp(:,3)=(dp(:,3)*u(:,1)-du(:,1,3)*p)/u(:,1)**2
     dv1(:,1)=(du(:,1,1)*u(:,2)/u(:,1))/u(:,1)
     dv1(:,2)=(du(:,1,2)*u(:,2)/u(:,1))/u(:,1)
     dv1(:,3)=(du(:,1,3)*u(:,2)/u(:,1))/u(:,1)
@@ -631,7 +635,7 @@ CONTAINS
     dv3(:,3)=(du(:,1,3)*u(:,4)/u(:,1))/u(:,1)
     SELECT CASE(dir)
     CASE(1)
-      result(:,2)=mu*(2*du(:,1,1)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
+      result(:,2)=mu*(2.0_RP*dv1(:,1)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
       result(:,3)=mu*(dv1(:,2)+dv2(:,1))
       result(:,4)=mu*(dv1(:,3)+dv3(:,1))
       result(:,5)=mu*(u(:,2)/u(:,1)*(2.0_rp*dv2(:,2)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
@@ -645,7 +649,7 @@ CONTAINS
     CASE(3)
       result(:,2)=mu*(dv1(:,3)+dv3(:,1))
       result(:,3)=mu*(dv2(:,3)+dv3(:,2))
-      result(:,4)=mu*(2.0_RP*dv3(:,3)+2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
+      result(:,4)=mu*(2.0_RP*dv3(:,3)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
       result(:,5)=mu*(u(:,4)/u(:,1)*(2.0_RP*dv3(:,3)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
                     u(:,2)/u(:,1)*(dv1(:,3)+dv3(:,1))+u(:,3)/u(:,1)*(dv2(:,3)+dv3(:,2)))+mu/(Pr*Rkonst)*dTemp(:,3)
     END SELECT
