@@ -101,7 +101,7 @@ CONTAINS
     call computeLviscous(u,dux,duy,duz,D,2,N,NQ,L2vis)
     call computeLviscous(u,dux,duy,duz,D,3,N,NQ,L3vis)
     solution=solution+res
-    solution=solution+8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
+    solution=solution-8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
     END SELECT
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -397,11 +397,11 @@ CONTAINS
           DO m=1,NQ
             DO k=1,N+1
               DO j=1,N+1
+                CALL computeviscousFlux(u(m,l,o,:,j,k,:),du,dir,n,Fviscous)
                 DO i=1,N+1
                   du(:,:,1)=dux(m,l,o,:,j,k,:)
                   du(:,:,2)=duy(m,l,o,:,j,k,:)
                   du(:,:,3)=duz(m,l,o,:,j,k,:)
-                  CALL computeviscousFlux(u(m,l,o,:,j,k,:),du,dir,n,Fviscous)
                   DO var=1,5 !! besser
                     result(m,l,o,i,j,k,var)=dot_product(D(i,:),Fviscous(:,var)*w)*1.0_RP/w(i)
                   ENDDO ! var

@@ -1,7 +1,7 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.3_RP,CFL=0.3_RP,dt,a
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.3_RP,CFL=0.1_RP,dt,a
   INTEGER,parameter                                  :: n=2,anz=2
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
