@@ -92,7 +92,7 @@ CONTAINS
     CASE('AD')
     solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
     call Residuum(NQ,N,t,vis,res)
-    solution=solution!+res !dt*res noch mal ueberpruefen !!!!
+    solution=solution+res !dt*res noch mal ueberpruefen !!!!
     CASE('VI')
     solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
     call Residuum(NQ,N,t,vis,res)
@@ -101,7 +101,7 @@ CONTAINS
     call computeLviscous(u,dux,duy,duz,D,2,N,NQ,L2vis)
     call computeLviscous(u,dux,duy,duz,D,3,N,NQ,L3vis)
     solution=solution+res
-    solution=solution-8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
+    solution=solution+8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
     END SELECT
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -144,7 +144,7 @@ CONTAINS
                ! result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
                !   +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
                 if (vis=='VI') then
-                  result(m,l,o,i,j,k,5)=result(m,l,o,i,j,k,5)+3.0_RP*mu/(Pr*Rkonst)*(Px*ro-rox*p)/(ro**2)
+                  result(m,l,o,i,j,k,5)=result(m,l,o,i,j,k,5)-3.0_RP*mu/(Pr*Rkonst)*(Px*ro-rox*p)/(ro**2)
 
                end if
               ENDDO
@@ -441,8 +441,8 @@ CONTAINS
             duRandr(:,:,:,3)=duz(m,l,o,1,:,:,:)
             CALL computeviscousFluxRand(u(m,l,o,N+1,:,:,:),duRandl,dir,n,Fvisl2)
             CALL computeviscousFluxRand(u(m,l,o,1,:,:,:),duRandr,dir,n,Fvisr1)
-            result(m,l,o,1,:,:,:)=result(m,l,o,1,:,:,:)+(Fvisl1+Fvisr1)*0.5_RP
-            result(m,l,o,N+1,:,:,:)=result(m,l,o,N+1,:,:,:)-(Fvisl2+Fvisr2)*0.5_RP
+            result(m,l,o,1,:,:,:)=result(m,l,o,1,:,:,:)-(Fvisl1+Fvisr1)*0.5_RP
+            result(m,l,o,N+1,:,:,:)=result(m,l,o,N+1,:,:,:)+(Fvisl2+Fvisr2)*0.5_RP
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
@@ -464,6 +464,7 @@ CONTAINS
               ENDDO ! j
             ENDDO ! k
             !Randbedingungen
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             IF (l==1) THEN
               uL=u(m,nq,o,:,N+1,:,:)
               duRandl(:,:,:,1)=dux(m,nq,o,:,N+1,:,:)
@@ -496,8 +497,8 @@ CONTAINS
             duRandr(:,:,:,3)=duz(m,l,o,:,1,:,:)
             CALL computeviscousFluxRand(u(m,l,o,:,N+1,:,:),duRandl,dir,n,Fvisl2)
             CALL computeviscousFluxRand(u(m,l,o,:,1,:,:),duRandr,dir,n,Fvisr1)
-            result(m,l,o,:,1,:,:)=result(m,l,o,:,1,:,:)+(Fvisl1+Fvisr1)*0.5_RP
-            result(m,l,o,:,N+1,:,:)=result(m,l,o,:,N+1,:,:)-(Fvisl2+Fvisr2)*0.5_RP
+            result(m,l,o,:,1,:,:)=result(m,l,o,:,1,:,:)-(Fvisl1+Fvisr1)*0.5_RP
+            result(m,l,o,:,N+1,:,:)=result(m,l,o,:,N+1,:,:)+(Fvisl2+Fvisr2)*0.5_RP
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
@@ -551,8 +552,8 @@ CONTAINS
             duRandr(:,:,:,3)=duz(m,l,o,:,:,1,:)
             CALL computeviscousFluxRand(u(m,l,o,:,:,N+1,:),duRandl,dir,n,Fvisl2)
             CALL computeviscousFluxRand(u(m,l,o,:,:,1,:),duRandr,dir,n,Fvisr1)
-            result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)+(Fvisl1+Fvisr1)*0.5_RP
-            result(m,l,o,:,:,N+1,:)=result(m,l,o,:,:,N+1,:)-(Fvisl2+Fvisr2)*0.5_RP
+            result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-(Fvisl1+Fvisr1)*0.5_RP
+            result(m,l,o,:,:,N+1,:)=result(m,l,o,:,:,N+1,:)+(Fvisl2+Fvisr2)*0.5_RP
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
@@ -587,10 +588,10 @@ CONTAINS
     dv3(:,:,3)=(du(:,:,1,3)*u(:,:,4)/u(:,:,1))/u(:,:,1)
     SELECT CASE(dir)
     CASE(1)
-      result(:,:,2)=mu*(2*du(:,:,1,1)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
+      result(:,:,2)=mu*(2*dv1(:,:,1)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
       result(:,:,3)=mu*(dv1(:,:,2)+dv2(:,:,1))
       result(:,:,4)=mu*(dv1(:,:,3)+dv3(:,:,1))
-      result(:,:,5)=mu*(u(:,:,2)/u(:,:,1)*(2.0_rp*dv2(:,:,2)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
+      result(:,:,5)=mu*(u(:,:,2)/u(:,:,1)*(2.0_rp*dv1(:,:,1)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
                     u(:,:,3)/u(:,:,1)*(dv2(:,:,1)+dv1(:,:,2))+u(:,:,4)/u(:,:,1)*(dv3(:,:,1)+dv1(:,:,3)))+mu/(Pr*Rkonst)*dTemp(:,:,1)
     CASE(2)
       result(:,:,2)=mu*(dv1(:,:,2)+dv2(:,:,1))
@@ -638,7 +639,7 @@ CONTAINS
       result(:,2)=mu*(2.0_RP*dv1(:,1)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
       result(:,3)=mu*(dv1(:,2)+dv2(:,1))
       result(:,4)=mu*(dv1(:,3)+dv3(:,1))
-      result(:,5)=mu*(u(:,2)/u(:,1)*(2.0_rp*dv2(:,2)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
+      result(:,5)=mu*(u(:,2)/u(:,1)*(2.0_rp*dv1(:,1)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
                     u(:,3)/u(:,1)*(dv2(:,1)+dv1(:,2))+u(:,4)/u(:,1)*(dv3(:,1)+dv1(:,3)))+mu/(Pr*Rkonst)*dTemp(:,1)
     CASE(2)
       result(:,2)=mu*(dv1(:,2)+dv2(:,1))

@@ -1,13 +1,14 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=1.0_RP,CFL=0.3_RP,dt,a
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.3_RP,CFL=0.3_RP,dt,a
   INTEGER,parameter                                  :: n=2,anz=2
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='ST',numChar,vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
-   CHARACTER(LEN=16) :: fName  = "Movies/UXX.tec"
+  CHARACTER(len=2)                                   :: whichflux='ST',vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
+  CHARACTER(Len=3)                                    ::numChar
+   CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
   INTEGER                                            :: k,i,start=2,m=0,l,o,li=1,j=0
@@ -19,7 +20,7 @@ program Driver_Manufactured
     call Vorbereiten(n,nq(k),D)
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
-    dt=CFL/(3.0_RP*a)*(dx/real(N+1,KIND=RP))**2
+    dt=CFL/(3.0_RP*a)*(dx/real(2*N+1,KIND=RP))**2
     !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     DO while(tend-t>epsilon(dt))
       print*,'t'
@@ -39,7 +40,7 @@ program Driver_Manufactured
 
       IF (MODULO(j,10).EQ.0 .and. nq(k)==4) THEN
 !!
-!  Print solution every 50 timesteps for movies
+!  Print solution every 10 timesteps for movies
 !!
         do li=1,nq(k)
         do l=1,nq(k)
@@ -56,12 +57,15 @@ program Driver_Manufactured
 
 
             m = m + 1
-            WRITE(numChar,'(i2)')m
-            IF (m.GE.10) THEN
-               fName(9:10) = numChar
-            ELSE
+            WRITE(numChar,'(i3)')m
+            IF (m.GE.100) THEN
+               fName(9:11) = numChar
+            ELSEif(m.GE.10) then
                fName(9:9)    = "0"
-               fName(10:10)  = numChar(2:2)
+               fName(10:11)  = numChar(2:3)
+            ELSE
+                fName(9:10) = "00"
+                fName(11:11)=numChar(3:3)
             END IF
             open(unit=15,file=fName)
             call ExportToTecplot_3D(xplot,yplot,zplot,uplot,N,NQ(k)**3,15,'rho')
