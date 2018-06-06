@@ -2,11 +2,11 @@ program Driver_Manufactured
   use Zeitintegration
   implicit none
   REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.3_RP,CFL=0.1_RP,dt,a
-  INTEGER,parameter                                  :: n=2,anz=2
+  INTEGER,parameter                                  :: n=3,anz=2
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='ST',vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
+  CHARACTER(len=2)                                   :: whichflux='PI',vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
   CHARACTER(Len=3)                                    ::numChar
    CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC

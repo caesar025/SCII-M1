@@ -101,7 +101,7 @@ CONTAINS
     call computeLviscous(u,dux,duy,duz,D,2,N,NQ,L2vis)
     call computeLviscous(u,dux,duy,duz,D,3,N,NQ,L3vis)
     solution=solution+res
-    solution=solution-8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
+    solution=solution+8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
     END SELECT
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -359,6 +359,9 @@ CONTAINS
                 duy(m,l,o,:,1,:,:)=(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
                 duy(m,l,o,:,N+1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
                 end if
+                !!!!!!!!!!!!!!!duz is wrong!!!!!!!!!!!!!!!!!
+! TODO (dorn_ni#1#): z direction
+
                 !z-direction
                 if(o==1) then
                 duz(m,l,o,:,:,1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,1,:)
@@ -726,11 +729,13 @@ CONTAINS
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
-    u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
-    u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+    !u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
+    !u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
+    !u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
+    !u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
+    !u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+    u=1.0_RP
+    u(:,:,:,:,:,:,5)=3.0_RP
   END SUBROUTINE Initialcondition
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeSolution(u,NQ,N,t)
