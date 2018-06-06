@@ -329,9 +329,9 @@ CONTAINS
                             do var=1,5
 ! TODO (dorn_ni#1#): maybe put dux duy duz together but than rank >7. check for compiler version on cheops
 
-                                    dux(m,l,o,i,j,k,var)=-dot_product(D(i,:),u(m,l,o,:,j,k,var)*w)*1.0_RP/w(i)*2.0_RP/dx!+surface term
-                                    duy(m,l,o,i,j,k,var)=-dot_product(D(j,:),u(m,l,o,i,:,k,var)*w)*1.0_RP/w(j)*2.0_RP/dx!+surface term
-                                    duz(m,l,o,i,j,k,var)=-dot_product(D(k,:),u(m,l,o,i,j,:,var)*w)*1.0_RP/w(k)*2.0_RP/dx!+surface term
+                                    dux(m,l,o,i,j,k,var)=-dot_product(D(i,:),u(m,l,o,:,j,k,var)*w)*1.0_RP/w(i)!+surface term
+                                    duy(m,l,o,i,j,k,var)=-dot_product(D(j,:),u(m,l,o,i,:,k,var)*w)*1.0_RP/w(j)!+surface term
+                                    duz(m,l,o,i,j,k,var)=-dot_product(D(k,:),u(m,l,o,i,j,:,var)*w)*1.0_RP/w(k)!+surface term
                             end do !var
                         end do !k
                     end do !j
@@ -350,14 +350,14 @@ CONTAINS
                 end if
                 !y-direction
                 if(l==1) then
-                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=-(u(m,nq,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,1,:,:)+u(m,nq,o,:,N+1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=-(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
                 elseif(l==nq) then
-                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,N+1,:,:)+u(m,1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,1,:,:)+u(m,l-1,o,:,N+1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=-(u(m,l,o,:,N+1,:,:)+u(m,1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
                 else
-                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                duy(m,l,o,:,1,:,:)=(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=-(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
                 end if
                 !!!!!!!!!!!!!!!duz is wrong!!!!!!!!!!!!!!!!!
 ! TODO (dorn_ni#1#): z direction
@@ -376,6 +376,8 @@ CONTAINS
             end do !o
         enddo!l
     end do!m
+    print*,duy(1,1,1,1,1,:,1)
+    stop
   END SUBROUTINE
   SUBROUTINE computeLviscous(u,dux,duy,duz,D,dir,N,NQ,result)
     !puts all of the viscous components together
