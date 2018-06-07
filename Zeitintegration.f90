@@ -315,10 +315,21 @@ CONTAINS
     REAL(KIND=RP),INTENT(OUT),DIMENSION(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5)       :: dux,duy,duz
     !local variables
     INTEGER                                                                         :: i,j,k,l,m,o,var
+    REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)                                      ::w2d
+     REAL(KIND=RP),DIMENSION(1:n+1,1:n+1,5)                                      ::w3d
+
     if (.not.allocated(w)) then
         print*,'w not allocated'
         stop
     endif
+    do i=1,n+1
+       do j=1,n+1
+
+          w2d(i,j)=(w(i)*w(j))
+
+       enddo
+    enddo
+    w3d=spread(w2d,3,5)
     do m=1,nq
         do l=1,nq
             do o=1,nq
@@ -329,54 +340,55 @@ CONTAINS
                             do var=1,5
 ! TODO (dorn_ni#1#): maybe put dux duy duz together but than rank >7. check for compiler version on cheops
 
-                                    dux(m,l,o,i,j,k,var)=-dot_product(D(i,:),u(m,l,o,:,j,k,var)*w)*1.0_RP/w(i)!+surface term
-                                    duy(m,l,o,i,j,k,var)=-dot_product(D(j,:),u(m,l,o,i,:,k,var)*w)*1.0_RP/w(j)!+surface term
-                                    duz(m,l,o,i,j,k,var)=-dot_product(D(k,:),u(m,l,o,i,j,:,var)*w)*1.0_RP/w(k)!+surface term
+                                    dux(m,l,o,i,j,k,var)=-dot_product(D(i,:),u(m,l,o,:,j,k,var)*w)*w(j)*w(k)*dx**2/4.0_RP!+surface term
+                                    duy(m,l,o,i,j,k,var)=-dot_product(D(j,:),u(m,l,o,i,:,k,var)*w)*w(i)*w(k)*dx**2/4.0_RP!+surface term
+                                    duz(m,l,o,i,j,k,var)=-dot_product(D(k,:),u(m,l,o,i,j,:,var)*w)*w(i)*w(j)*dx**2/4.0_RP!+surface term
                             end do !var
                         end do !k
                     end do !j
                 end do !i
+
                 !surfaceterms and boundary conditions
                 !x-direction
                 if(m==1) then
-                dux(m,l,o,1,:,:,:)=(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,1,:,:,:)
-                dux(m,l,o,N+1,:,:,:)=-(u(nq,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,N+1,:,:,:)
+                dux(m,l,o,1,:,:,:)=-(u(m,l,o,1,:,:,:)+u(nq,l,o,N+1,:,:,:))*dx**2/(8.0_RP)+dux(m,l,o,1,:,:,:)
+                dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*dx**2/8.0_RP+dux(m,l,o,N+1,:,:,:)
                 elseif(m==nq) then
-                dux(m,l,o,1,:,:,:)=(u(m,l,o,N+1,:,:,:)+u(1,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,1,:,:,:)
-                dux(m,l,o,N+1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,N+1,:,:,:)
+                dux(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*dx**2/8.0_RP+dux(m,l,o,1,:,:,:)
+                dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(1,l,o,1,:,:,:))*dx**2/8.0_RP+dux(m,l,o,N+1,:,:,:)
                 else
-                dux(m,l,o,1,:,:,:)=(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,1,:,:,:)
-                dux(m,l,o,N+1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*0.5_RP+dux(m,l,o,N+1,:,:,:)
+                dux(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*dx**2/8.0_RP+dux(m,l,o,1,:,:,:)
+                dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*dx**2/8.0_RP+dux(m,l,o,N+1,:,:,:)
                 end if
                 !y-direction
                 if(l==1) then
-                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,1,:,:)+u(m,nq,o,:,N+1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=-(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                duy(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,nq,o,:,N+1,:,:))*dx**2/8.0_RP+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/(dx*w(N+1)*w3d)+duy(m,l,o,:,N+1,:,:)
                 elseif(l==nq) then
-                duy(m,l,o,:,1,:,:)=(u(m,l,o,:,1,:,:)+u(m,l-1,o,:,N+1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=-(u(m,l,o,:,N+1,:,:)+u(m,1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                duy(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,l-1,o,:,N+1,:,:))*1.0_RP/(dx*w(1)*w3d)+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,1,o,:,1,:,:))*1.0_RP/(dx*w(N+1)*w3d)+duy(m,l,o,:,N+1,:,:)
                 else
-                duy(m,l,o,:,1,:,:)=(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=-(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*0.5_RP+duy(m,l,o,:,N+1,:,:)
+                duy(m,l,o,:,1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*1.0_RP/(dx*w(1)*w3d)+duy(m,l,o,:,1,:,:)
+                duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/(dx*w(N+1)*w3d)+duy(m,l,o,:,N+1,:,:)
                 end if
                 !!!!!!!!!!!!!!!duz is wrong!!!!!!!!!!!!!!!!!
 ! TODO (dorn_ni#1#): z direction
 
                 !z-direction
                 if(o==1) then
-                duz(m,l,o,:,:,1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,1,:)
-                duz(m,l,o,:,:,N+1,:)=-(u(m,l,nq,:,:,N+1,:)+u(m,l,o,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,N+1,:)
+                duz(m,l,o,:,:,1,:)=-(u(m,l,nq,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/(dx*w(1)*w3d)+duz(m,l,o,:,:,1,:)
+                duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/(dx*w(N+1)*w3d)+duz(m,l,o,:,:,N+1,:)
                 elseif(o==nq) then
-                duz(m,l,o,:,:,1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,1,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,1,:)
-                duz(m,l,o,:,:,N+1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,N+1,:)
+                duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/(dx*w(1)*w3d)+duz(m,l,o,:,:,1,:)
+                duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,1,:,:,1,:))*1.0_RP/(dx*w(N+1)*w3d)+duz(m,l,o,:,:,N+1,:)
                 else
-                duz(m,l,o,:,:,1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,1,:)
-                duz(m,l,o,:,:,N+1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*0.5_RP+duz(m,l,o,:,:,N+1,:)
+                duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/(dx*w(1)*w3d)+duz(m,l,o,:,:,1,:)
+                duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/(dx*w(N+1)*w3d)+duz(m,l,o,:,:,N+1,:)
                 end if
             end do !o
         enddo!l
     end do!m
-    print*,duy(1,1,1,1,1,:,1)
+print*,2.0_RP*xyz(1,1,1,1,1,:,1)-1.0_RP/(w(1)**2*w)*dux(1,1,1,1,1,:,1)
     stop
   END SUBROUTINE
   SUBROUTINE computeLviscous(u,dux,duy,duz,D,dir,N,NQ,result)
@@ -736,8 +748,11 @@ CONTAINS
     !u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
     !u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
     !u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
-    u=1.0_RP
-    u(:,:,:,:,:,:,5)=3.0_RP
+    u(:,:,:,:,:,:,1)=2.0_RP+xyz(:,:,:,:,:,:,1)**2
+    u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
+    u(:,:,:,:,:,:,5)=1.0_RP+u(:,:,:,:,:,:,1)**2
   END SUBROUTINE Initialcondition
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeSolution(u,NQ,N,t)
