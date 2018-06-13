@@ -90,18 +90,18 @@ CONTAINS
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
     SELECT CASE(vis)
     CASE('AD')
-    solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
-    call Residuum(NQ,N,t,vis,res)
-    solution=solution+res !dt*res noch mal ueberpruefen !!!!
+      solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
+      call Residuum(NQ,N,t,vis,res)
+      solution=solution+res
     CASE('VI')
-    solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
-    call Residuum(NQ,N,t,vis,res)
-    call computeGradient(u,n,nq,D,dux,duy,duz)
-    call computeLviscous(u,dux,duy,duz,D,1,N,NQ,L1vis)
-    call computeLviscous(u,dux,duy,duz,D,2,N,NQ,L2vis)
-    call computeLviscous(u,dux,duy,duz,D,3,N,NQ,L3vis)
-    solution=solution+res
-    solution=solution+8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
+      solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
+      call Residuum(NQ,N,t,vis,res)
+      call computeGradient(u,n,nq,D,dux,duy,duz)
+      call computeLviscous(u,dux,duy,duz,D,1,N,NQ,L1vis)
+      call computeLviscous(u,dux,duy,duz,D,2,N,NQ,L2vis)
+      call computeLviscous(u,dux,duy,duz,D,3,N,NQ,L3vis)
+      solution=solution+res
+      solution=solution+8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
     END SELECT
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -136,17 +136,17 @@ CONTAINS
                 result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
                 result(m,l,o,i,j,k,5)=2.0_RP*ro*rox+3.0_RP*Px
-               ! result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
-               ! result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
-               !   +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
-               ! result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
-               ! result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
-               ! result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
-               !   +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
-                if (vis=='VI') then
-                  result(m,l,o,i,j,k,5)=result(m,l,o,i,j,k,5)-3.0_RP*mu/(Pr*Rkonst)*(Px*ro-rox*p)/(ro**2)
+                ! result(m,l,o,i,j,k,1)=c1*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                ! result(m,l,o,i,j,k,2)=c2*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
+                !   +c3*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                ! result(m,l,o,i,j,k,3)=result(m,l,o,i,j,k,2)
+                ! result(m,l,o,i,j,k,4)=result(m,l,o,i,j,k,2)
+                ! result(m,l,o,i,j,k,5)=c4*cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))&
+                !   +c5*cos(2.0_RP*pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
+                IF (vis=='VI') THEN
+                  result(m,l,o,i,j,k,5)=result(m,l,o,i,j,k,5)+3.0_RP*mu/(Pr*Rkonst)*(Px*ro-rox*p)/(ro**2)
 
-               end if
+                END IF
               ENDDO
             ENDDO
           ENDDO
@@ -454,7 +454,7 @@ print*,dux(1,1,1,1,1,:,1)
         ENDDO ! l
       ENDDO ! o
     CASE(2)
-       DO o=1,NQ
+      DO o=1,NQ
         DO l=1,NQ
           DO m=1,NQ
             DO k=1,N+1
@@ -570,96 +570,142 @@ print*,dux(1,1,1,1,1,:,1)
   SUBROUTINE computeviscousFluxRand(u,du,dir,n,result)
     !computes the viscous part of the flux analytically
     IMPLICIT NONE
-    INTEGER       ,INTENT(IN)                               :: N,dir
-    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)   :: u
-    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5,1:3)   :: du !(Punkte x Punkte x Variable x Ableitungsrichtung)
-    REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:n+1,1:5)   :: result
-    REAL(KIND=RP)             ,DIMENSION(1:N+1,1:N+1)       ::P
-    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:n+1,1:3)   ::dTemp,dv1,dv2,dv3,dP
+    INTEGER       ,INTENT(IN)                                 :: N,dir
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5)     :: u
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:n+1,1:5,1:3) :: du !(Punkte x Punkte x Variable x Ableitungsrichtung)
+    REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:n+1,1:5)     :: result
+    REAL(KIND=RP)             ,DIMENSION(1:N+1,1:N+1)         :: P
+    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:n+1,1:3)     :: dTemp,dv1,dv2,dv3,dP,drv1,drv2,drv3
     result(:,:,1)=0.0_RP
     p=(gamma-1.0_RP)*(u(:,:,5)-0.5_RP*(u(:,:,2)*u(:,:,2)+u(:,:,3)*u(:,:,3)+u(:,:,4)*u(:,:,4))/u(:,:,1))
-    dP(:,:,1)=(gamma-1.0_RP)*du(:,:,1,1)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
-    dP(:,:,2)=(gamma-1.0_RP)*du(:,:,1,2)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
-    dP(:,:,3)=(gamma-1.0_RP)*du(:,:,1,3)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
+    !dP(:,:,1)=(gamma-1.0_RP)*du(:,:,1,1)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
+    !dP(:,:,2)=(gamma-1.0_RP)*du(:,:,1,2)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
+    !dP(:,:,3)=(gamma-1.0_RP)*du(:,:,1,3)*(2.0_RP*u(:,:,1)-3.0_RP/2.0_RP)
+    !dv1(:,:,1)=(du(:,:,1,1)*u(:,:,2)/u(:,:,1))/u(:,:,1)
+    !dv1(:,:,2)=(du(:,:,1,2)*u(:,:,2)/u(:,:,1))/u(:,:,1)
+    !dv1(:,:,3)=(du(:,:,1,3)*u(:,:,2)/u(:,:,1))/u(:,:,1)
+    !dv2(:,:,1)=(du(:,:,1,1)*u(:,:,3)/u(:,:,1))/u(:,:,1)
+    !dv2(:,:,2)=(du(:,:,1,2)*u(:,:,3)/u(:,:,1))/u(:,:,1)
+    !dv2(:,:,3)=(du(:,:,1,3)*u(:,:,3)/u(:,:,1))/u(:,:,1)
+    !dv3(:,:,1)=(du(:,:,1,1)*u(:,:,4)/u(:,:,1))/u(:,:,1)
+    !dv3(:,:,2)=(du(:,:,1,2)*u(:,:,4)/u(:,:,1))/u(:,:,1)
+    !dv3(:,:,3)=(du(:,:,1,3)*u(:,:,4)/u(:,:,1))/u(:,:,1)
+    dv1(:,:,1)=(du(:,:,2,1)-u(:,:,2)*du(:,:,1,1))/u(:,:,1)
+    dv1(:,:,2)=(du(:,:,2,2)-u(:,:,2)*du(:,:,1,2))/u(:,:,1)
+    dv1(:,:,3)=(du(:,:,2,3)-u(:,:,2)*du(:,:,1,3))/u(:,:,1)
+    dv2(:,:,1)=(du(:,:,3,1)-u(:,:,3)*du(:,:,1,1))/u(:,:,1)
+    dv2(:,:,2)=(du(:,:,3,2)-u(:,:,3)*du(:,:,1,2))/u(:,:,1)
+    dv2(:,:,3)=(du(:,:,3,3)-u(:,:,3)*du(:,:,1,3))/u(:,:,1)
+    dv3(:,:,1)=(du(:,:,4,1)-u(:,:,4)*du(:,:,1,1))/u(:,:,1)
+    dv3(:,:,2)=(du(:,:,4,2)-u(:,:,4)*du(:,:,1,2))/u(:,:,1)
+    dv3(:,:,3)=(du(:,:,4,3)-u(:,:,4)*du(:,:,1,3))/u(:,:,1)
+    drv1(:,:,1)=du(:,:,1,1)*(u(:,:,2)/u(:,:,1))**2+2.0_RP*u(:,:,2)*dv1(:,:,1)
+    drv1(:,:,2)=du(:,:,1,2)*(u(:,:,2)/u(:,:,1))**2+2.0_RP*u(:,:,2)*dv1(:,:,2)
+    drv1(:,:,3)=du(:,:,1,3)*(u(:,:,2)/u(:,:,1))**2+2.0_RP*u(:,:,2)*dv1(:,:,3)
+    drv2(:,:,1)=du(:,:,1,1)*(u(:,:,3)/u(:,:,1))**2+2.0_RP*u(:,:,3)*dv2(:,:,1)
+    drv2(:,:,2)=du(:,:,1,2)*(u(:,:,3)/u(:,:,1))**2+2.0_RP*u(:,:,3)*dv2(:,:,2)
+    drv2(:,:,3)=du(:,:,1,3)*(u(:,:,3)/u(:,:,1))**2+2.0_RP*u(:,:,3)*dv2(:,:,3)
+    drv3(:,:,1)=du(:,:,1,1)*(u(:,:,4)/u(:,:,1))**2+2.0_RP*u(:,:,4)*dv3(:,:,1)
+    drv3(:,:,2)=du(:,:,1,2)*(u(:,:,4)/u(:,:,1))**2+2.0_RP*u(:,:,4)*dv3(:,:,2)
+    drv3(:,:,3)=du(:,:,1,3)*(u(:,:,4)/u(:,:,1))**2+2.0_RP*u(:,:,4)*dv3(:,:,3)
+    dP(:,:,1)=(gamma-1.0_RP)*(du(:,:,5,1)-0.5_RP*(drv1(:,:,1)+drv2(:,:,1)+drv3(:,:,1)))
+    dP(:,:,2)=(gamma-1.0_RP)*(du(:,:,5,1)-0.5_RP*(drv1(:,:,2)+drv2(:,:,2)+drv3(:,:,2)))
+    dP(:,:,3)=(gamma-1.0_RP)*(du(:,:,5,1)-0.5_RP*(drv1(:,:,3)+drv2(:,:,3)+drv3(:,:,3)))
     dTemp(:,:,1)=(dp(:,:,1)*u(:,:,1)-du(:,:,1,1)*p)/u(:,:,1)**2
     dTemp(:,:,2)=(dp(:,:,2)*u(:,:,1)-du(:,:,1,2)*p)/u(:,:,1)**2
     dTemp(:,:,3)=(dp(:,:,3)*u(:,:,1)-du(:,:,1,3)*p)/u(:,:,1)**2
-    dv1(:,:,1)=(du(:,:,1,1)*u(:,:,2)/u(:,:,1))/u(:,:,1)
-    dv1(:,:,2)=(du(:,:,1,2)*u(:,:,2)/u(:,:,1))/u(:,:,1)
-    dv1(:,:,3)=(du(:,:,1,3)*u(:,:,2)/u(:,:,1))/u(:,:,1)
-    dv2(:,:,1)=(du(:,:,1,1)*u(:,:,3)/u(:,:,1))/u(:,:,1)
-    dv2(:,:,2)=(du(:,:,1,2)*u(:,:,3)/u(:,:,1))/u(:,:,1)
-    dv2(:,:,3)=(du(:,:,1,3)*u(:,:,3)/u(:,:,1))/u(:,:,1)
-    dv3(:,:,1)=(du(:,:,1,1)*u(:,:,4)/u(:,:,1))/u(:,:,1)
-    dv3(:,:,2)=(du(:,:,1,2)*u(:,:,4)/u(:,:,1))/u(:,:,1)
-    dv3(:,:,3)=(du(:,:,1,3)*u(:,:,4)/u(:,:,1))/u(:,:,1)
     SELECT CASE(dir)
     CASE(1)
       result(:,:,2)=mu*(2*dv1(:,:,1)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
       result(:,:,3)=mu*(dv1(:,:,2)+dv2(:,:,1))
       result(:,:,4)=mu*(dv1(:,:,3)+dv3(:,:,1))
       result(:,:,5)=mu*(u(:,:,2)/u(:,:,1)*(2.0_rp*dv1(:,:,1)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
-                    u(:,:,3)/u(:,:,1)*(dv2(:,:,1)+dv1(:,:,2))+u(:,:,4)/u(:,:,1)*(dv3(:,:,1)+dv1(:,:,3)))+mu/(Pr*Rkonst)*dTemp(:,:,1)
+        u(:,:,3)/u(:,:,1)*(dv2(:,:,1)+dv1(:,:,2))+u(:,:,4)/u(:,:,1)*(dv3(:,:,1)+dv1(:,:,3)))+mu/(Pr*Rkonst)*dTemp(:,:,1)
     CASE(2)
       result(:,:,2)=mu*(dv1(:,:,2)+dv2(:,:,1))
       result(:,:,3)=mu*(2.0_RP*dv2(:,:,2)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
       result(:,:,4)=mu*(dv2(:,:,3)+dv3(:,:,2))
       result(:,:,5)=mu*(u(:,:,3)/u(:,:,1)*(2.0_RP*dv2(:,:,2)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
-                    u(:,:,2)/u(:,:,1)*(dv2(:,:,1)+dv1(:,:,2))+u(:,:,4)/u(:,:,1)*(dv3(:,:,2)+dv2(:,:,3)))+mu/(Pr*Rkonst)*dTemp(:,:,2)
+        u(:,:,2)/u(:,:,1)*(dv2(:,:,1)+dv1(:,:,2))+u(:,:,4)/u(:,:,1)*(dv3(:,:,2)+dv2(:,:,3)))+mu/(Pr*Rkonst)*dTemp(:,:,2)
     CASE(3)
       result(:,:,2)=mu*(dv1(:,:,3)+dv3(:,:,1))
       result(:,:,3)=mu*(dv2(:,:,3)+dv3(:,:,2))
       result(:,:,4)=mu*(2.0_RP*dv3(:,:,3)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))
       result(:,:,5)=mu*(u(:,:,4)/u(:,:,1)*(2.0_RP*dv3(:,:,3)-2.0_RP/3.0_RP*(dv1(:,:,1)+dv2(:,:,2)+dv3(:,:,3)))+&
-                    u(:,:,2)/u(:,:,1)*(dv1(:,:,3)+dv3(:,:,1))+u(:,:,3)/u(:,:,1)*(dv2(:,:,3)+dv3(:,:,2)))+mu/(Pr*Rkonst)*dTemp(:,:,3)
+        u(:,:,2)/u(:,:,1)*(dv1(:,:,3)+dv3(:,:,1))+u(:,:,3)/u(:,:,1)*(dv2(:,:,3)+dv3(:,:,2)))+mu/(Pr*Rkonst)*dTemp(:,:,3)
     END SELECT
   END SUBROUTINE computeviscousFluxRand
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeviscousFlux(u,du,dir,n,result)
     !computes the viscous part of the flux analytically
     IMPLICIT NONE
-    INTEGER       ,INTENT(IN)                               :: N,dir
-    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:5)   :: u
-    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:5,1:3)   :: du !(Punkte x Variable x Ableitungsrichtung)
-    REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:5)   :: result
-    REAL(KIND=RP)             ,DIMENSION(1:N+1)       ::P
-    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:3)   ::dTemp,dv1,dv2,dv3,dp
+    INTEGER       ,INTENT(IN)                           :: N,dir
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:5)     :: u
+    REAL(KIND=RP) ,INTENT(IN) ,DIMENSION(1:n+1,1:5,1:3) :: du !(Punkte x Variable x Ableitungsrichtung)
+    REAL(KIND=RP) ,INTENT(OUT),DIMENSION(1:n+1,1:5)     :: result
+    REAL(KIND=RP)             ,DIMENSION(1:N+1)         :: P
+    REAL(KIND=RP)             ,DIMENSION(1:n+1,1:3)     :: dTemp,dv1,dv2,dv3,dp,drv1,drv2,drv3
     result(:,1)=0.0_RP
     p=(gamma-1.0_RP)*(u(:,5)-0.5_RP*(u(:,2)*u(:,2)+u(:,3)*u(:,3)+u(:,4)*u(:,4))/u(:,1))
-    dP(:,1)=(gamma-1.0_RP)*du(:,1,1)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
-    dP(:,2)=(gamma-1.0_RP)*du(:,1,2)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
-    dP(:,3)=(gamma-1.0_RP)*du(:,1,3)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
+    !dP(:,1)=(gamma-1.0_RP)*du(:,1,1)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
+    !dP(:,2)=(gamma-1.0_RP)*du(:,1,2)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
+    !dP(:,3)=(gamma-1.0_RP)*du(:,1,3)*(2.0_RP*u(:,1)-3.0_RP/2.0_RP)
+    !dTemp(:,1)=(dp(:,1)*u(:,1)-du(:,1,1)*p)/u(:,1)**2
+    !dTemp(:,2)=(dp(:,2)*u(:,1)-du(:,1,2)*p)/u(:,1)**2
+    !dTemp(:,3)=(dp(:,3)*u(:,1)-du(:,1,3)*p)/u(:,1)**2
+    ! Fehler glaube ich  
+    ! dv1(:,1)=(du(:,1,1)*u(:,2)/u(:,1))/u(:,1)
+    ! dv1(:,2)=(du(:,1,2)*u(:,2)/u(:,1))/u(:,1)
+    ! dv1(:,3)=(du(:,1,3)*u(:,2)/u(:,1))/u(:,1)
+    ! dv2(:,1)=(du(:,1,1)*u(:,3)/u(:,1))/u(:,1)
+    ! dv2(:,2)=(du(:,1,2)*u(:,3)/u(:,1))/u(:,1)
+    ! dv2(:,3)=(du(:,1,3)*u(:,3)/u(:,1))/u(:,1)
+    ! dv3(:,1)=(du(:,1,1)*u(:,4)/u(:,1))/u(:,1)
+    ! dv3(:,2)=(du(:,1,2)*u(:,4)/u(:,1))/u(:,1)
+    ! dv3(:,3)=(du(:,1,3)*u(:,4)/u(:,1))/u(:,1)
+    dv1(:,1)=(du(:,2,1)-u(:,2)*du(:,1,1))/u(:,1)
+    dv1(:,2)=(du(:,2,2)-u(:,2)*du(:,1,2))/u(:,1)
+    dv1(:,3)=(du(:,2,3)-u(:,2)*du(:,1,3))/u(:,1)
+    dv2(:,1)=(du(:,3,1)-u(:,3)*du(:,1,1))/u(:,1)
+    dv2(:,2)=(du(:,3,2)-u(:,3)*du(:,1,2))/u(:,1)
+    dv2(:,3)=(du(:,3,3)-u(:,3)*du(:,1,3))/u(:,1)
+    dv3(:,1)=(du(:,4,1)-u(:,4)*du(:,1,1))/u(:,1)
+    dv3(:,2)=(du(:,4,2)-u(:,4)*du(:,1,2))/u(:,1)
+    dv3(:,3)=(du(:,4,3)-u(:,4)*du(:,1,3))/u(:,1)
+    drv1(:,1)=du(:,1,1)*(u(:,2)/u(:,1))**2+2.0_RP*u(:,2)*dv1(:,1)
+    drv1(:,2)=du(:,1,2)*(u(:,2)/u(:,1))**2+2.0_RP*u(:,2)*dv1(:,2)
+    drv1(:,3)=du(:,1,3)*(u(:,2)/u(:,1))**2+2.0_RP*u(:,2)*dv1(:,3)
+    drv2(:,1)=du(:,1,1)*(u(:,3)/u(:,1))**2+2.0_RP*u(:,3)*dv2(:,1)
+    drv2(:,2)=du(:,1,2)*(u(:,3)/u(:,1))**2+2.0_RP*u(:,3)*dv2(:,2)
+    drv2(:,3)=du(:,1,3)*(u(:,3)/u(:,1))**2+2.0_RP*u(:,3)*dv2(:,3)
+    drv3(:,1)=du(:,1,1)*(u(:,4)/u(:,1))**2+2.0_RP*u(:,4)*dv3(:,1)
+    drv3(:,2)=du(:,1,2)*(u(:,4)/u(:,1))**2+2.0_RP*u(:,4)*dv3(:,2)
+    drv3(:,3)=du(:,1,3)*(u(:,4)/u(:,1))**2+2.0_RP*u(:,4)*dv3(:,3)
+    dP(:,1)=(gamma-1.0_RP)*(du(:,5,1)-0.5_RP*(drv1(:,1)+drv2(:,1)+drv3(:,1)))
+    dP(:,2)=(gamma-1.0_RP)*(du(:,5,1)-0.5_RP*(drv1(:,2)+drv2(:,2)+drv3(:,2)))
+    dP(:,3)=(gamma-1.0_RP)*(du(:,5,1)-0.5_RP*(drv1(:,3)+drv2(:,3)+drv3(:,3)))
     dTemp(:,1)=(dp(:,1)*u(:,1)-du(:,1,1)*p)/u(:,1)**2
     dTemp(:,2)=(dp(:,2)*u(:,1)-du(:,1,2)*p)/u(:,1)**2
     dTemp(:,3)=(dp(:,3)*u(:,1)-du(:,1,3)*p)/u(:,1)**2
-    dv1(:,1)=(du(:,1,1)*u(:,2)/u(:,1))/u(:,1)
-    dv1(:,2)=(du(:,1,2)*u(:,2)/u(:,1))/u(:,1)
-    dv1(:,3)=(du(:,1,3)*u(:,2)/u(:,1))/u(:,1)
-    dv2(:,1)=(du(:,1,1)*u(:,3)/u(:,1))/u(:,1)
-    dv2(:,2)=(du(:,1,2)*u(:,3)/u(:,1))/u(:,1)
-    dv2(:,3)=(du(:,1,3)*u(:,3)/u(:,1))/u(:,1)
-    dv3(:,1)=(du(:,1,1)*u(:,4)/u(:,1))/u(:,1)
-    dv3(:,2)=(du(:,1,2)*u(:,4)/u(:,1))/u(:,1)
-    dv3(:,3)=(du(:,1,3)*u(:,4)/u(:,1))/u(:,1)
     SELECT CASE(dir)
     CASE(1)
       result(:,2)=mu*(2.0_RP*dv1(:,1)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
       result(:,3)=mu*(dv1(:,2)+dv2(:,1))
       result(:,4)=mu*(dv1(:,3)+dv3(:,1))
       result(:,5)=mu*(u(:,2)/u(:,1)*(2.0_rp*dv1(:,1)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
-                    u(:,3)/u(:,1)*(dv2(:,1)+dv1(:,2))+u(:,4)/u(:,1)*(dv3(:,1)+dv1(:,3)))+mu/(Pr*Rkonst)*dTemp(:,1)
+        u(:,3)/u(:,1)*(dv2(:,1)+dv1(:,2))+u(:,4)/u(:,1)*(dv3(:,1)+dv1(:,3)))+mu/(Pr*Rkonst)*dTemp(:,1)
     CASE(2)
       result(:,2)=mu*(dv1(:,2)+dv2(:,1))
       result(:,3)=mu*(2.0_RP*dv2(:,2)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
       result(:,4)=mu*(dv2(:,3)+dv3(:,2))
       result(:,5)=mu*(u(:,3)/u(:,1)*(2.0_RP*dv2(:,2)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
-                    u(:,2)/u(:,1)*(dv2(:,1)+dv1(:,2))+u(:,4)/u(:,1)*(dv3(:,2)+dv2(:,3)))+mu/(Pr*Rkonst)*dTemp(:,2)
+        u(:,2)/u(:,1)*(dv2(:,1)+dv1(:,2))+u(:,4)/u(:,1)*(dv3(:,2)+dv2(:,3)))+mu/(Pr*Rkonst)*dTemp(:,2)
     CASE(3)
       result(:,2)=mu*(dv1(:,3)+dv3(:,1))
       result(:,3)=mu*(dv2(:,3)+dv3(:,2))
       result(:,4)=mu*(2.0_RP*dv3(:,3)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))
       result(:,5)=mu*(u(:,4)/u(:,1)*(2.0_RP*dv3(:,3)-2.0_RP/3.0_RP*(dv1(:,1)+dv2(:,2)+dv3(:,3)))+&
-                    u(:,2)/u(:,1)*(dv1(:,3)+dv3(:,1))+u(:,3)/u(:,1)*(dv2(:,3)+dv3(:,2)))+mu/(Pr*Rkonst)*dTemp(:,3)
+        u(:,2)/u(:,1)*(dv1(:,3)+dv3(:,1))+u(:,3)/u(:,1)*(dv2(:,3)+dv3(:,2)))+mu/(Pr*Rkonst)*dTemp(:,3)
     END SELECT
   END SUBROUTINE computeviscousFlux
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -821,27 +867,27 @@ print*,dux(1,1,1,1,1,:,1)
     p2=(gamma-1.0_RP)*(u2(:,:,5)-0.5_RP*(u2(:,:,2)*u2(:,:,2)+u2(:,:,3)*u2(:,:,3)+u2(:,:,4)*u2(:,:,4))/u2(:,:,1))
     ! h = e + p/rho = (rho e + p)/rho = (u(5)+p)/u(1)
     h1=(u1(:,:,5)  +p1)   /u1(:,:,1)
-      h2=(u2(:,:,5)+p2)/u2(:,:,1)
+    h2=(u2(:,:,5)+p2)/u2(:,:,1)
     SELECT CASE(dir)
-      CASE(1)
-        result(:,:,1)=(u1(:,:,1)+u2(:,:,1))*(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.25_RP
-        result(:,:,2)=result(:,:,1)    *(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.5_RP  +(p1+p2)*0.5_RP
-        result(:,:,3)=result(:,:,1)    *(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.5_RP
-        result(:,:,4)=result(:,:,1)    *(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.5_RP
-        result(:,:,5)=result(:,:,1)    *(h1+h2)*0.5_RP
-      CASE(2)
-        result(:,:,1)=(u1(:,:,1)+u2(:,:,1))*(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.25_RP
-        result(:,:,2)=result(:,:,1)    *(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.5_RP
-        result(:,:,3)=result(:,:,1)    *(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.5_RP  +(p1+p2)*0.5_RP
-        result(:,:,4)=result(:,:,1)    *(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.5_RP
-        result(:,:,5)=result(:,:,1)    *(h1+h2)*0.5_RP
-      CASE(3)
-        result(:,:,1)=(u1(:,:,1)+u2(:,:,1))*(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.25_RP
-        result(:,:,2)=result(:,:,1)    *(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.5_RP
-        result(:,:,3)=result(:,:,1)    *(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.5_RP
-        result(:,:,4)=result(:,:,1)    *(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.5_RP  +(p1+p2)*0.5_RP
-        result(:,:,5)=result(:,:,1)    *(h1+h2)*0.5_RP
-      END SELECT
+    CASE(1)
+      result(:,:,1)=(u1(:,:,1)+u2(:,:,1))*(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.25_RP
+      result(:,:,2)=result(:,:,1)    *(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.5_RP  +(p1+p2)*0.5_RP
+      result(:,:,3)=result(:,:,1)    *(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.5_RP
+      result(:,:,4)=result(:,:,1)    *(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.5_RP
+      result(:,:,5)=result(:,:,1)    *(h1+h2)*0.5_RP
+    CASE(2)
+      result(:,:,1)=(u1(:,:,1)+u2(:,:,1))*(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.25_RP
+      result(:,:,2)=result(:,:,1)    *(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.5_RP
+      result(:,:,3)=result(:,:,1)    *(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.5_RP  +(p1+p2)*0.5_RP
+      result(:,:,4)=result(:,:,1)    *(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.5_RP
+      result(:,:,5)=result(:,:,1)    *(h1+h2)*0.5_RP
+    CASE(3)
+      result(:,:,1)=(u1(:,:,1)+u2(:,:,1))*(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.25_RP
+      result(:,:,2)=result(:,:,1)    *(u1(:,:,2)/u1(:,:,1)+u2(:,:,2)/u2(:,:,1))*0.5_RP
+      result(:,:,3)=result(:,:,1)    *(u1(:,:,3)/u1(:,:,1)+u2(:,:,3)/u2(:,:,1))*0.5_RP
+      result(:,:,4)=result(:,:,1)    *(u1(:,:,4)/u1(:,:,1)+u2(:,:,4)/u2(:,:,1))*0.5_RP  +(p1+p2)*0.5_RP
+      result(:,:,5)=result(:,:,1)    *(h1+h2)*0.5_RP
+    END SELECT
   END SUBROUTINE calculateEulerRandFluxPI
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE lambdaMax(uL,uR,dir,result,N)
@@ -894,9 +940,9 @@ print*,dux(1,1,1,1,1,:,1)
     REAL(KIND=RP),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1) :: p,c
     !
     p=(gamma-1.0_RP)*(u(:,:,:,:,:,:,5)-0.5_RP*(u(:,:,:,:,:,:,2)**2+u(:,:,:,:,:,:,3)**2+u(:,:,:,:,:,:,4)**2)/u(:,:,:,:,:,:,1))
-    if (any(gamma*p/u(:,:,:,:,:,:,1)<0)) then
-    print*,1
-    endif
+    IF (any(gamma*p/u(:,:,:,:,:,:,1)<0)) THEN
+      print*,1
+    ENDif
     c=sqrt(gamma*p/u(:,:,:,:,:,:,1))
     !! max from abs(eigenvalue)
     lambdamax=max(MAXVAL(ABS(u(:,:,:,:,:,:,2)/u(:,:,:,:,:,:,1)+c)),MAXVAL(ABS(u(:,:,:,:,:,:,3)/u(:,:,:,:,:,:,1)+c)),&
