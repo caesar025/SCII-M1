@@ -85,6 +85,11 @@ CONTAINS
     CHARACTER(len=2),INTENT(IN)                                                :: whichflux,vis
     REAL(KIND=RP),INTENT(IN)                                                   :: t,dt                    ! Startzeit,zeitschritt
     REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5)   :: L1,L2,L3,dux,duy,duz,L1vis,L2vis,L3vis
+    INTEGER                                                                    :: ierr,num_procs !num_procs=#Processoren ierr=Errorflag
+    call MPI_Init(ierr) !starting MPI
+    call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr) !getting the number of processors
+    !we assume num_procs is a cubic number for simplicity
+    call MPI_Scatter !we distribute the data
     CALL computeL(u,D,1,L1,N,NQ,whichflux)
     CALL computeL(u,D,2,L2,N,NQ,whichflux)
     CALL computeL(u,D,3,L3,N,NQ,whichflux)
@@ -653,7 +658,7 @@ print*,dux(1,1,1,1,1,:,1)
     !dTemp(:,1)=(dp(:,1)*u(:,1)-du(:,1,1)*p)/u(:,1)**2
     !dTemp(:,2)=(dp(:,2)*u(:,1)-du(:,1,2)*p)/u(:,1)**2
     !dTemp(:,3)=(dp(:,3)*u(:,1)-du(:,1,3)*p)/u(:,1)**2
-    ! Fehler glaube ich  
+    ! Fehler glaube ich
     ! dv1(:,1)=(du(:,1,1)*u(:,2)/u(:,1))/u(:,1)
     ! dv1(:,2)=(du(:,1,2)*u(:,2)/u(:,1))/u(:,1)
     ! dv1(:,3)=(du(:,1,3)*u(:,2)/u(:,1))/u(:,1)
