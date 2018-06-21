@@ -106,7 +106,7 @@ CONTAINS
       call computeLviscous(u,dux,duy,duz,D,2,N,NQ,L2vis)
       call computeLviscous(u,dux,duy,duz,D,3,N,NQ,L3vis)
       solution=solution+res
-      solution=solution+8.0_RP/(dx**3)*(0.25_RP*dx*dx*l1vis+0.25_RP*dx*dx*l2vis+0.25_RP*dx*dx*l3vis)
+      solution=solution+2.0_RP/(dx)*(l1vis+l2vis+l3vis)
     END SELECT
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -175,101 +175,107 @@ CONTAINS
     REAL(KIND=RP),DIMENSION(1:N+1,1:N+1,1:5) :: FRand0,FRand1,uR,uL
     SELECT CASE(dir)
     CASE(1)
-      DO o=1,NQ
-        DO l=1,NQ
-          DO m=1,NQ
-            DO k=1,N+1
-              DO j=1,N+1
-                DO i=1,N+1
-                  CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp,N)
-                  DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(i,:),Fsharp(:,var))
-                  ENDDO ! var
-                ENDDO ! i
-              ENDDO ! j
-            ENDDO ! k
-            !Randbedingungen
-            IF (m==1) THEN
-              uL=u(nq,l,o,N+1,:,:,:)
-            ELSE
-              uL=u(m-1,l,o,N+1,:,:,:)
-            ENDIF
-            IF (m==NQ) THEN
-              uR=u(1,l,o,1,:,:,:)
-            ELSE
-              uR=u(m+1,l,o,1,:,:,:)
-            ENDIF
-            CALL computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,0,whichflux,FRand0,N)
-            CALL computeLocalLaxFriedrich(u(m,l,o,N+1,:,:,:),uR,dir,1,whichflux,FRand1,N)
-            result(m,l,o,1,:,:,:)=result(m,l,o,1,:,:,:)-FRand0
-            result(m,l,o,N+1,:,:,:)=result(m,l,o,N+1,:,:,:)+FRand1
-          ENDDO ! m
-        ENDDO ! l
-      ENDDO ! o
-    CASE(2)
-      DO o=1,NQ
-        DO l=1,NQ
-          DO m=1,NQ
-            DO k=1,N+1
-              DO j=1,N+1
-                DO i=1,N+1
-                  CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,whichflux,Fsharp,N)
-                  DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(j,:),Fsharp(:,var))
-                  ENDDO ! var
-                ENDDO ! i
-              ENDDO ! j
-            ENDDO ! k
-            !Randbedingungen
-            IF (l==1) THEN
-              uL=u(m,nq,o,:,N+1,:,:)
-            ELSE
-              uL=u(m,l-1,o,:,N+1,:,:)
-            ENDIF
-            IF (l==nq) THEN
-              uR=u(m,1,o,:,1,:,:)
-            ELSE
-              uR=u(m,l+1,o,:,1,:,:)
-            ENDIF
-            CALL computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,whichflux,FRand0,N)
-            CALL computeLocalLaxFriedrich(u(m,l,o,:,N+1,:,:),uR,dir,1,whichflux,FRand1,N)
-            result(m,l,o,:,1,:,:)=result(m,l,o,:,1,:,:)-FRand0
-            result(m,l,o,:,N+1,:,:)=result(m,l,o,:,N+1,:,:)+FRand1
-          ENDDO ! m
-        ENDDO ! l
-      ENDDO ! o
-    CASE(3)
-      DO o=1,NQ
-        DO l=1,NQ
-          DO m=1,NQ
-            DO k=1,N+1
-              DO j=1,N+1
-                DO i=1,N+1
-                  CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,whichflux,Fsharp,N)
-                  DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(k,:),Fsharp(:,var))
-                  ENDDO ! var
-                ENDDO ! i
-              ENDDO ! j
-            ENDDO ! k
-            !Randbedingungen
-            IF (o==1) THEN
-              uL=u(m,l,nq,:,:,N+1,:)
-            ELSE
-              uL=u(m,l,o-1,:,:,N+1,:)
-            ENDIF
-            IF (o==nq) THEN
-              uR=u(m,l,1,:,:,1,:)
-            ELSE
-              uR=u(m,l,o+1,:,:,1,:)
-            ENDIF
-            CALL computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,whichflux,FRand0,N)
-            CALL computeLocalLaxFriedrich(u(m,l,o,:,:,N+1,:),uR,dir,1,whichflux,FRand1,N)
-            result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-FRand0
-            result(m,l,o,:,:,N+1,:)=result(m,l,o,:,:,N+1,:)+FRand1
-          ENDDO ! m
-        ENDDO ! l
-      ENDDO ! o
+!      !$OMP PARALLEL DO
+     DO o=1,NQ
+       DO l=1,NQ
+         DO m=1,NQ
+           DO k=1,N+1
+             DO j=1,N+1
+               DO i=1,N+1
+                 CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp,N)
+                 DO var=1,5 !! besser
+                   result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(i,:),Fsharp(:,var))
+                 ENDDO ! var
+               ENDDO ! i
+             ENDDO ! j
+           ENDDO ! k
+           !Randbedingungen
+           IF (m==1) THEN
+             uL=u(nq,l,o,N+1,:,:,:)
+           ELSE
+             uL=u(m-1,l,o,N+1,:,:,:)
+           ENDIF
+           IF (m==NQ) THEN
+             uR=u(1,l,o,1,:,:,:)
+           ELSE
+             uR=u(m+1,l,o,1,:,:,:)
+           ENDIF
+           CALL computeLocalLaxFriedrich(uL,u(m,l,o,1,:,:,:),dir,0,whichflux,FRand0,N)
+           CALL computeLocalLaxFriedrich(u(m,l,o,N+1,:,:,:),uR,dir,1,whichflux,FRand1,N)
+           result(m,l,o,1,:,:,:)=result(m,l,o,1,:,:,:)-FRand0
+           result(m,l,o,N+1,:,:,:)=result(m,l,o,N+1,:,:,:)+FRand1
+         ENDDO ! m
+       ENDDO ! l
+     ENDDO ! o
+!      !$OMP END PARALLEL DO
+   CASE(2)
+!      !$OMP PARALLEL DO
+     DO o=1,NQ
+       DO l=1,NQ
+         DO m=1,NQ
+           DO k=1,N+1
+             DO j=1,N+1
+               DO i=1,N+1
+                 CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,:,k,:),dir,whichflux,Fsharp,N)
+                 DO var=1,5 !! besser
+                   result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(j,:),Fsharp(:,var))
+                 ENDDO ! var
+               ENDDO ! i
+             ENDDO ! j
+           ENDDO ! k
+           !Randbedingungen
+           IF (l==1) THEN
+             uL=u(m,nq,o,:,N+1,:,:)
+           ELSE
+             uL=u(m,l-1,o,:,N+1,:,:)
+           ENDIF
+           IF (l==nq) THEN
+             uR=u(m,1,o,:,1,:,:)
+           ELSE
+             uR=u(m,l+1,o,:,1,:,:)
+           ENDIF
+           CALL computeLocalLaxFriedrich(uL,u(m,l,o,:,1,:,:),dir,0,whichflux,FRand0,N)
+           CALL computeLocalLaxFriedrich(u(m,l,o,:,N+1,:,:),uR,dir,1,whichflux,FRand1,N)
+           result(m,l,o,:,1,:,:)=result(m,l,o,:,1,:,:)-FRand0
+           result(m,l,o,:,N+1,:,:)=result(m,l,o,:,N+1,:,:)+FRand1
+         ENDDO ! m
+       ENDDO ! l
+     ENDDO ! o
+!      !$OMP END PARALLEL DO
+   CASE(3)
+!      !$OMP PARALLEL DO
+     DO o=1,NQ
+       DO l=1,NQ
+         DO m=1,NQ
+           DO k=1,N+1
+             DO j=1,N+1
+               DO i=1,N+1
+                 CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,i,j,:,:),dir,whichflux,Fsharp,N)
+                 DO var=1,5 !! besser
+                   result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(k,:),Fsharp(:,var))
+                 ENDDO ! var
+               ENDDO ! i
+             ENDDO ! j
+           ENDDO ! k
+           !Randbedingungen
+           IF (o==1) THEN
+             uL=u(m,l,nq,:,:,N+1,:)
+           ELSE
+             uL=u(m,l,o-1,:,:,N+1,:)
+           ENDIF
+           IF (o==nq) THEN
+             uR=u(m,l,1,:,:,1,:)
+           ELSE
+             uR=u(m,l,o+1,:,:,1,:)
+           ENDIF
+           CALL computeLocalLaxFriedrich(uL,u(m,l,o,:,:,1,:),dir,0,whichflux,FRand0,N)
+           CALL computeLocalLaxFriedrich(u(m,l,o,:,:,N+1,:),uR,dir,1,whichflux,FRand1,N)
+           result(m,l,o,:,:,1,:)=result(m,l,o,:,:,1,:)-FRand0
+           result(m,l,o,:,:,N+1,:)=result(m,l,o,:,:,N+1,:)+FRand1
+         ENDDO ! m
+       ENDDO ! l
+     ENDDO ! o
+!      !$OMP END PARALLEL DO
     END SELECT
   END SUBROUTINE computeL
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -321,70 +327,93 @@ CONTAINS
     !local variables
     INTEGER                                                                         :: i,j,k,l,m,o,var
 
-    if (.not.allocated(w)) then
-        print*,'w not allocated'
-        stop
-    endif
-    do m=1,nq
-        do l=1,nq
-            do o=1,nq
+    IF (.not.allocated(w)) THEN
+      print*,'w not allocated'
+      stop
+    ENDif
+    !$OMP PARALLEL DO
+    DO m=1,nq
+      DO l=1,nq
+        DO o=1,nq 
+          DO i=1,n+1
+            DO j=1,n+1
+              DO k=1,n+1
+                DO var=1,5
+                  ! TODO (dorn_ni#1#): maybe put dux duy duz together but than rank >7. check for compiler version on cheops 
+                  !dux(m,l,o,i,j,k,var)=-dot_product(w,matmul(D,u(m,l,o,:,j,k,var)))*(w(j)*w(k))!+surface term
+                  !duy(m,l,o,i,j,k,var)=-dot_product(w,matmul(D,u(m,l,o,i,:,k,var)))*(w(i)*w(k))!+surface term
+                  !duz(m,l,o,i,j,k,var)=-dot_product(w,matmul(D,u(m,l,o,i,j,:,var)))*(w(j)*w(i))!+surface term
 
-                do i=1,n+1
-                    do j=1,n+1
-                        do k=1,n+1
-                            do var=1,5
-! TODO (dorn_ni#1#): maybe put dux duy duz together but than rank >7. check for compiler version on cheops
+                  dux(m,l,o,i,j,k,var)=-dot_product(D(:,i),u(m,l,o,:,j,k,var)*w)!+surface term
+                  duy(m,l,o,i,j,k,var)=-dot_product(D(:,j),u(m,l,o,i,:,k,var)*w)!+surface term
+                  duz(m,l,o,i,j,k,var)=-dot_product(D(:,k),u(m,l,o,i,j,:,var)*w)!+surface term
+                END DO !var
+              END DO !k
+            END DO !j
+          END DO !i
 
-                                    dux(m,l,o,i,j,k,var)=-dot_product(D(i,:),u(m,l,o,:,j,k,var)*w)*2.0_RP/(w(i)*dx)!+surface term
-                                    duy(m,l,o,i,j,k,var)=-dot_product(D(j,:),u(m,l,o,i,:,k,var)*w)*2.0_RP/(w(j)*dx)!+surface term
-                                    duz(m,l,o,i,j,k,var)=-dot_product(D(k,:),u(m,l,o,i,j,:,var)*w)*2.0_RP/(w(k)*dx)!+surface term
-                            end do !var
-                        end do !k
-                    end do !j
-                end do !i
+          !surfaceterms and boundary conditions
+          !x-direction
+          IF(m==1) THEN
+            dux(m,l,o,1,:,:,:)=-(u(m,l,o,1,:,:,:)+u(nq,l,o,N+1,:,:,:))*1.0_RP/2.0_RP+dux(m,l,o,1,:,:,:) 
+            dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/2.0_RP+dux(m,l,o,N+1,:,:,:)
+          ELSEif(m==nq) THEN
+            dux(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/2.0_RP+dux(m,l,o,1,:,:,:)
+            dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(1,l,o,1,:,:,:))*1.0_RP/2.0_RP+dux(m,l,o,N+1,:,:,:)
+          ELSE
+            dux(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/2.0_RP+dux(m,l,o,1,:,:,:)
+            dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/2.0_RP+dux(m,l,o,N+1,:,:,:)
+          END IF
+          !y-direction
+          IF(l==1) THEN
+            duy(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,nq,o,:,N+1,:,:))*1.0_RP/2.0_RP+duy(m,l,o,:,1,:,:)
+            duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/2.0_RP+duy(m,l,o,:,N+1,:,:)
+          ELSEif(l==nq) THEN
+            duy(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,l-1,o,:,N+1,:,:))*1.0_RP/2.0_RP+duy(m,l,o,:,1,:,:)
+            duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,1,o,:,1,:,:))*1.0_RP/2.0_RP+duy(m,l,o,:,N+1,:,:)
+          ELSE
+            duy(m,l,o,:,1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*1.0_RP/2.0_RP+duy(m,l,o,:,1,:,:)
+            duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/2.0_RP+duy(m,l,o,:,N+1,:,:)
+          END IF
+          !!!!!!!!!!!!!!!duz is wrong!!!!!!!!!!!!!!!!!
+          ! TODO (dorn_ni#1#): z direction
 
-                !surfaceterms and boundary conditions
-                !x-direction
-                if(m==1) then
-                dux(m,l,o,1,:,:,:)=-(u(m,l,o,1,:,:,:)+u(nq,l,o,N+1,:,:,:))*1.0_RP/w(1)*1.0_RP/dx+dux(m,l,o,1,:,:,:)
-                dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/w(N+1)*1.0_RP/dx+dux(m,l,o,N+1,:,:,:)
-                elseif(m==nq) then
-                dux(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/w(1)*1.0_RP/dx+dux(m,l,o,1,:,:,:)
-                dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(1,l,o,1,:,:,:))*1.0_RP/w(N+1)*1.0_RP/dx+dux(m,l,o,N+1,:,:,:)
-                else
-                dux(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/w(1)*1.0_RP/dx+dux(m,l,o,1,:,:,:)
-                dux(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/w(N+1)*1.0_RP/dx+dux(m,l,o,N+1,:,:,:)
-                end if
-                !y-direction
-                if(l==1) then
-                duy(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,nq,o,:,N+1,:,:))*1.0_RP/w(1)*1.0_RP/dx+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/w(N+1)*1.0_RP/dx+duy(m,l,o,:,N+1,:,:)
-                elseif(l==nq) then
-                duy(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,l-1,o,:,N+1,:,:))*1.0_RP/w(1)*1.0_RP/dx+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,1,o,:,1,:,:))*1.0_RP/w(N+1)*1.0_RP/dx+duy(m,l,o,:,N+1,:,:)
-                else
-                duy(m,l,o,:,1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*1.0_RP/w(1)*1.0_RP/dx+duy(m,l,o,:,1,:,:)
-                duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/w(N+1)*1.0_RP/dx+duy(m,l,o,:,N+1,:,:)
-                end if
-                !!!!!!!!!!!!!!!duz is wrong!!!!!!!!!!!!!!!!!
-! TODO (dorn_ni#1#): z direction
+          !z-direction
+          IF(o==1) THEN
+            duz(m,l,o,:,:,1,:)=-(u(m,l,nq,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,1,:)
+            duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,N+1,:)
+          ELSEif(o==nq) THEN
+            duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,1,:)
+            duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,1,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,N+1,:)
+          ELSE
+            duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,1,:)
+            duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,N+1,:)
+          END IF
+        END DO !o
+      ENDdo!l
+    END DO!m
 
-                !z-direction
-                if(o==1) then
-                duz(m,l,o,:,:,1,:)=-(u(m,l,nq,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/w(1)*1.0_RP/dx+duz(m,l,o,:,:,1,:)
-                duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/w(N+1)*1.0_RP/dx+duz(m,l,o,:,:,N+1,:)
-                elseif(o==nq) then
-                duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/w(1)*1.0_RP/dx+duz(m,l,o,:,:,1,:)
-                duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,1,:,:,1,:))*1.0_RP/w(N+1)*1.0_RP/dx+duz(m,l,o,:,:,N+1,:)
-                else
-                duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/w(1)*1.0_RP/dx+duz(m,l,o,:,:,1,:)
-                duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/w(N+1)*1.0_RP/dx+duz(m,l,o,:,:,N+1,:)
-                end if
-            end do !o
-        enddo!l
-    end do!m
-print*,dux(1,1,1,1,1,:,1)
-    stop
+    !$OMP END PARALLEL DO
+    !$OMP PARALLEL DO
+    DO m=1,nq
+      DO l=1,nq
+        DO o=1,nq 
+          DO i=1,n+1
+            DO j=1,n+1
+              DO k=1,n+1
+                dux(m,l,o,i,j,k,:)=dux(m,l,o,i,j,k,:)*2.0_RP/(w(i)*dx)
+                duy(m,l,o,i,j,k,:)=duy(m,l,o,i,j,k,:)*2.0_RP/(w(j)*dx)
+                duz(m,l,o,i,j,k,:)=duz(m,l,o,i,j,k,:)*2.0_RP/(w(k)*dx)
+              END DO !k
+            END DO !j
+          END DO !i
+        END DO !o
+      ENDdo!l
+    END DO!m
+    !$OMP END PARALLEL DO
+    !print*,dux(1,1,1,:,1,1,1)
+    !print*, xyz(1,1,1,:,1,1,1)*xyz(1,1,1,:,1,1,1)*xyz(1,1,1,:,1,1,1)*xyz(1,1,1,:,1,1,1)*5.0_rp
+    !stop
   END SUBROUTINE
   SUBROUTINE computeLviscous(u,dux,duy,duz,D,dir,N,NQ,result)
     !puts all of the viscous components together
@@ -404,6 +433,7 @@ print*,dux(1,1,1,1,1,:,1)
 
     SELECT CASE(dir)
     CASE(1)
+    !$OMP PARALLEL DO
       DO o=1,NQ
         DO l=1,NQ
           DO m=1,NQ
@@ -414,8 +444,8 @@ print*,dux(1,1,1,1,1,:,1)
                   du(:,:,1)=dux(m,l,o,:,j,k,:)
                   du(:,:,2)=duy(m,l,o,:,j,k,:)
                   du(:,:,3)=duz(m,l,o,:,j,k,:)
-                  DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=dot_product(D(i,:),Fviscous(:,var)*w)*1.0_RP/w(i)
+                  DO var=1,5 
+                    result(m,l,o,i,j,k,var)=-dot_product(D(:,i),Fviscous(:,var)*w)
                   ENDDO ! var
                 ENDDO ! i
               ENDDO ! j
@@ -458,7 +488,22 @@ print*,dux(1,1,1,1,1,:,1)
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
+    DO m=1,nq
+      DO l=1,nq
+        DO o=1,nq 
+          DO i=1,n+1
+            DO j=1,n+1
+              DO k=1,n+1
+                result(m,l,o,i,j,k,:)=result(m,l,o,i,j,k,:)/(w(i))
+              END DO !k
+            END DO !j
+          END DO !i
+        END DO !o
+      ENDdo!l
+    END DO!m
+      !$OMP END PARALLEL DO
     CASE(2)
+    !$OMP PARALLEL DO
       DO o=1,NQ
         DO l=1,NQ
           DO m=1,NQ
@@ -470,7 +515,7 @@ print*,dux(1,1,1,1,1,:,1)
                   du(:,:,3)=duz(m,l,o,i,:,k,:)
                   CALL computeviscousFlux(u(m,l,o,i,:,k,:),du,dir,n,Fviscous)
                   DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=dot_product(D(j,:),Fviscous(:,var)*w)*1.0_RP/w(j)
+                    result(m,l,o,i,j,k,var)=-dot_product(D(:,j),Fviscous(:,var)*w)
                   ENDDO ! var
                 ENDDO ! i
               ENDDO ! j
@@ -514,7 +559,22 @@ print*,dux(1,1,1,1,1,:,1)
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
+    DO m=1,nq
+      DO l=1,nq
+        DO o=1,nq 
+          DO i=1,n+1
+            DO j=1,n+1
+              DO k=1,n+1
+                result(m,l,o,i,j,k,:)=result(m,l,o,i,j,k,:)/(w(j))
+              END DO !k
+            END DO !j
+          END DO !i
+        END DO !o
+      ENDdo!l
+    END DO!m
+      !$OMP END PARALLEL DO
     CASE(3)
+    !$OMP PARALLEL DO
       DO o=1,NQ
         DO l=1,NQ
           DO m=1,NQ
@@ -526,7 +586,7 @@ print*,dux(1,1,1,1,1,:,1)
                   du(:,:,3)=duz(m,l,o,i,j,:,:)
                   CALL computeviscousFlux(u(m,l,o,i,j,:,:),du,dir,n,Fviscous)
                   DO var=1,5 !! besser
-                    result(m,l,o,i,j,k,var)=dot_product(D(k,:),Fviscous(:,var)*w)*1.0_RP/w(k)
+                    result(m,l,o,i,j,k,var)=-dot_product(D(:,k),Fviscous(:,var)*w)
                   ENDDO ! var
                 ENDDO ! i
               ENDDO ! j
@@ -569,6 +629,20 @@ print*,dux(1,1,1,1,1,:,1)
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
+    DO m=1,nq
+      DO l=1,nq
+        DO o=1,nq 
+          DO i=1,n+1
+            DO j=1,n+1
+              DO k=1,n+1
+                result(m,l,o,i,j,k,:)=result(m,l,o,i,j,k,:)/(w(k))
+              END DO !k
+            END DO !j
+          END DO !i
+        END DO !o
+      ENDdo!l
+    END DO!m
+      !$OMP END PARALLEL DO
     END SELECT
   END SUBROUTINE computeLviscous
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -784,16 +858,16 @@ print*,dux(1,1,1,1,1,:,1)
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
-    !u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
-    !u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
-    !u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
-    !u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
-    !u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,1)=1.0_RP
-    u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
-    u(:,:,:,:,:,:,5)=3.0_RP
+   u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
+   u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
+   u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
+   u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
+   u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+   ! u(:,:,:,:,:,:,1)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)
+   ! u(:,:,:,:,:,:,2)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)
+   ! u(:,:,:,:,:,:,3)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)
+   ! u(:,:,:,:,:,:,4)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)
+   ! u(:,:,:,:,:,:,5)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*3.0_RP
   END SUBROUTINE Initialcondition
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeSolution(u,NQ,N,t)
