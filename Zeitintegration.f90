@@ -94,7 +94,7 @@ CONTAINS
         call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr) !getting the number of processors
         call MPI_COMM_RANK(MPI_COMM_WORLD,id,ierr)
         !we assume nq**3 is divisible by num_procs
-        if(mod(nq**3,num_procs)/=0.and.id==0) then
+        if(mod(nq**3,num_procs)/=0) then
             call MPI_Finalize(ierr)
             print*,'Number of elements(',nq**3,') is not divided by ',num_procs
         end if
