@@ -7,7 +7,7 @@ program Driver_Manufactured
     REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
     REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
     REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-    CHARACTER(len=2)                                   :: whichflux='PI',vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
+    CHARACTER(len=2)                                   :: whichflux='PI',vis='AD' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
     CHARACTER(Len=3)                                    ::numChar
     CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
     REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
@@ -42,9 +42,11 @@ program Driver_Manufactured
                 dt=CFL/(3.0_RP*a)*(dx/real(2*N+1))**2
                 IF(t+dt>tend) dt=tend-t
             else
-                allocate(u(1,1,1,1,1,1,1))
+                if(.not.allocated(u)) allocate(u(1:nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5))
             end if
+						
             call MPI_BCAST(dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+	    			
             call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux,vis)
             ! Ueberpruefen ob Dichte/Druck negativ werden
             IF (ANY(u(:,:,:,:,:,:,1) < 0)) print*, 'Druck/Dichte sind negativ!'
