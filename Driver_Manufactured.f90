@@ -2,16 +2,16 @@ program Driver_Manufactured
   use Zeitintegration
   implicit none
   REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.1_RP,CFL=0.4_RP,dt,a
-  INTEGER,parameter                                  :: n=3,anz=3
+  INTEGER,parameter                                  :: n=1,anz=3
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-  CHARACTER(len=2)                                   :: whichflux='PI',vis='AD' !whichflux: IF pirozzoli or standard fluxes; vis: viskos or just advective
+  CHARACTER(len=2)                                   :: whichflux='PI',vis='VI' !whichflux: IF pirozzoli or standard fluxes; vis: viskos or just advective
   CHARACTER(Len=3)                                    ::numChar
   CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
-  INTEGER                                            :: k,i,start=1,m=0,l,o,li=1,j=0,xnum=1,ynum=1,znum=2
+  INTEGER                                            :: k,i,start=1,m=0,l,o,li=1,j=0,xnum=1,ynum=1,znum=1
   nq=2**(/ (I,I=start,start+anz-1) /)
   call beginne_para() 
   DO k=1,anz
