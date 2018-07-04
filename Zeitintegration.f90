@@ -6,6 +6,7 @@ MODULE Zeitintegration
   INTEGER                                            :: NQX,NQY,NQZ,id,num_procs,ierr
   INTEGER,DIMENSION(MPI_STATUS_SIZE)                 :: stat
   INTEGER,DIMENSION(:,:),ALLOCATABLE                 :: part_map
+  INTEGER,DIMENSION(:,:,:),ALLOCATABLE              :: procs_map
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE :: xyz
 
 CONTAINS
@@ -71,20 +72,21 @@ CONTAINS
     ! local
     REAL(KIND=RP)           ,DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) ::L1,L2,L3
     !
-    CALL computeL(u,D,1,L1,N,NQ,NQX,NQY,NQZ,whichflux)
-    CALL computeL(u,D,2,L2,N,NQ,NQX,NQY,NQZ,whichflux)
-    CALL computeL(u,D,3,L3,N,NQ,NQX,NQY,NQZ,whichflux)
+    CALL computeL(u,D,1,L1,N,NQ,whichflux)
+    CALL computeL(u,D,2,L2,N,NQ,whichflux)
+    CALL computeL(u,D,3,L3,N,NQ,whichflux)
     solution=8.0_RP/(dx**3)*((-0.25_RP*dx**2)*L1-(0.25_RP*dx**2)*L2-(0.25_RP*dx**2)*L3)
   END FUNCTION R
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  FUNCTION Rmanu(usub,N,NQ,NQX,NQY,NQZ,D,t,whichflux,vis,dt) result(solution)
+  FUNCTION Rmanu(usub,N,NQ,D,t,whichflux,vis,dt,xyzsub) result(solution)
     ! Setze Rechteseite zusammen mit manufactuerd solution
     IMPLICIT NONE
-    INTEGER, INTENT(IN)                                                           :: n,NQ,NQX,NQY,NQZ
+    INTEGER, INTENT(IN)                                                           :: n,NQ
     REAL(KIND=RP), DIMENSION(1:NQX,1:NQY,1:NQZ,1:n+1,1:(N+1),1:n+1,1:5)           :: solution    ! Rechte Seite
     REAL(KIND=RP), DIMENSION(1:NQX,1:NQY,1:NQZ,1:n+1,1:(N+1),1:n+1,1:5)           :: res                       ! Quellterme
     REAL(KIND=RP), INTENT(IN), DIMENSION(1:NQX,1:NQY,1:NQZ,1:n+1,1:n+1,1:n+1,1:5) :: usub
+    REAL(KIND=RP), INTENT(IN), DIMENSION(1:NQX,1:NQY,1:NQZ,1:n+1,1:n+1,1:n+1,1:3) :: xyzsub
     REAL(KIND=RP),INTENT(IN),DIMENSION(1:N+1,1:N+1)                               :: D                        ! Diff-Matrix
     CHARACTER(len=2),INTENT(IN)                                                   :: whichflux,vis
     REAL(KIND=RP),INTENT(IN)                                                      :: t,dt                    ! Startzeit,zeitschritt
@@ -96,14 +98,14 @@ CONTAINS
       call MPI_Finalize(ierr)
       print*,'Number of elements(',nq**3,') is not divided by ',num_procs
     END IF
-    CALL computeL(usub,D,1,L1,N,NQ,NQX,NQY,NQZ,whichflux)
-    CALL computeL(usub,D,2,L2,N,NQ,NQX,NQY,NQZ,whichflux)
-    CALL computeL(usub,D,3,L3,N,NQ,NQX,NQY,NQZ,whichflux)
+    CALL computeL(usub,D,1,L1,N,NQ,whichflux)
+    CALL computeL(usub,D,2,L2,N,NQ,whichflux)
+    CALL computeL(usub,D,3,L3,N,NQ,whichflux)
     SELECT CASE(vis)
     CASE('AD')
       solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
-     ! call Residuum(NQ,N,t,vis,res)
-     ! solution=solution+res
+      call Residuum(NQ,N,t,vis,res,xyzsub) 
+      solution=solution+res
    ! CASE('VI')
    !   solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
    !   call Residuum(NQ,N,t,vis,res)
@@ -116,12 +118,13 @@ CONTAINS
     END SELECT
   END FUNCTION Rmanu
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE Residuum (NQ,N,t,vis,result)
+  SUBROUTINE Residuum (NQ,N,t,vis,result,xyzsub)
     ! Berechne Quellterme
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                        :: n,NQ
     REAL(KIND=RP),INTENT(IN)                                        :: t                    ! Startzeit
-    REAL(KIND=RP),DIMENSION(1:NQ,1:nq,1:nq,1:n+1,1:(N+1),1:n+1,1:5) :: result                       ! Quellterme
+    REAL(KIND=RP),DIMENSION(1:NQx,1:nqy,1:nqZ,1:n+1,1:(N+1),1:n+1,1:5) :: result                       ! Quellterme
+    REAL(KIND=RP),DIMENSION(1:NQx,1:nqy,1:nqZ,1:n+1,1:(N+1),1:n+1,1:3) :: xyzsub                      
     CHARACTER(len=2),INTENT(IN)                                     :: vis                !Schalter ob viskos oder advektiv
     REAL(KIND=RP)                                                   :: c1,c2,c3,c4,c5,ro,rox,Px,p               ! Hilfsvariablen
     INTEGER                                                         :: o,l,m,k,j,i
@@ -132,14 +135,14 @@ CONTAINS
     c4=(-16.0_RP*pi+pi*(9.0_RP+15.0_RP*gamma))/20.0_RP
     c5=(3*pi*gamma-2.0*pi)/100.0_RP
 
-    DO o=1,nq
-      DO l=1,nq
-        DO m=1,nq
+    DO o=1,NQZ
+      DO l=1,NQY
+        DO m=1,NQX
           DO k=1,n+1
             DO j=1,n+1
               DO i=1,n+1
-                ro=2.0_RP+1.0_RP/10.0_RP*sin(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))
-                rox=cos(pi*(xyz(m,l,o,i,j,k,1)+xyz(m,l,o,i,j,k,2)+xyz(m,l,o,i,j,k,3)-2.0_RP*t))*pi/10.0_RP
+                ro=2.0_RP+1.0_RP/10.0_RP*sin(pi*(xyzsub(m,l,o,i,j,k,1)+xyzsub(m,l,o,i,j,k,2)+xyzsub(m,l,o,i,j,k,3)-2.0_RP*t))
+                rox=cos(pi*(xyzsub(m,l,o,i,j,k,1)+xyzsub(m,l,o,i,j,k,2)+xyzsub(m,l,o,i,j,k,3)-2.0_RP*t))*pi/10.0_RP
                 Px=(gamma-1.0_RP)*((2.0_RP*ro-3.0_RP/2.0_RP)*rox)
                 P=(gamma-1.0_RP)*(ro**2-3.0_RP/2.0_RP*ro)
                 result(m,l,o,i,j,k,1)=rox
@@ -166,9 +169,9 @@ CONTAINS
     ENDDO
   END SUBROUTINE Residuum
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE computeL(usub,D,dir,result,N,NQ,NQX,NQY,NQZ,whichflux)
+  SUBROUTINE computeL(usub,D,dir,result,N,NQ,whichflux)
     IMPLICIT NONE
-    INTEGER      ,INTENT(IN)                                                     :: N,NQ,NQX,NQY,NQZ
+    INTEGER      ,INTENT(IN)                                                     :: N,NQ
     INTEGER      ,INTENT(IN)                                                     :: dir
     REAL(KIND=RP),INTENT(IN) ,DIMENSION(1:NQX,1:NQY,1:NQZ,1:N+1,1:N+1,1:N+1,1:5) :: usub
     REAL(KIND=RP),DIMENSION(:,:,:,:,:,:),allocatable                             :: urand
@@ -267,8 +270,8 @@ CONTAINS
             ELSE
               uL=usub(m,l-1,o,:,N+1,:,:)
             ENDIF
-            IF (l==nqX) THEN
-            if(nq==nqx) then
+            IF (l==nqy) THEN
+            if(nq==nqy) then
               uR=usub(m,1,o,:,1,:,:)
             else
               uR=urand(2,m,o,:,:,:)
@@ -285,7 +288,7 @@ CONTAINS
         ENDDO ! l
       ENDDO ! o
     CASE(3)
-      allocate(urand(0:1,1:NQX,1:NQY,1:N+1,1:N+1,1:5))
+      allocate(urand(1:2,1:NQX,1:NQY,1:N+1,1:N+1,1:5))
       DO o=1,NQZ
         DO l=1,NQY
           DO m=1,NQX
@@ -311,14 +314,14 @@ CONTAINS
             !Randbedingungen
             IF (o==1) THEN
               if(nq==nqz) then
-                uL=usub(m,l,nq,:,:,N+1,:)
+                uL=usub(m,l,nqz,:,:,N+1,:)
               else
                 uL=urand(1,m,l,:,:,:)
               endif
             ELSE
               uL=usub(m,l,o-1,:,:,N+1,:)
             ENDIF
-            IF (o==nq) THEN
+            IF (o==nqz) THEN
               if(nq==nqZ) then
                 uR=usub(m,l,1,:,:,1,:)
               else
@@ -348,56 +351,66 @@ CONTAINS
     INTEGER                                            :: links,rechts,i,l
     INTEGER,INTENT(in)                                 :: N
     ! urand(links=1/rechts=2,zelle,zelle,matrix am Rand, matrix am Rand, variablen)
-    call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr) !getting the number of processors
-    call MPI_COMM_RANK(MPI_COMM_WORLD,id,ierr)
     SELECT CASE(richtung)
     case(1)
-      do i=0,num_procs-1
-        if(id==i) then 
-          links=part_map(id,0)    
-          rechts=part_map(id,1)    
-          call MPI_SEND(u(1,:,:,1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
-          call MPI_SEND(u(NQX,:,:,n+1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
-        ELSEIF(id==part_map(i,0).AND.id==part_map(i,1)) then
-          call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
-          call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-        elseif(id==part_map(i,0)) then
-          call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,1)) then 
-          call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-        end if
-      end do
+    !if(id==1) then 
+    !  !print*, 1
+    !  !print*, usub(1,1,1,1,1,:,:)
+    !  call MPI_SEND(usub,NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,0,1,MPI_COMM_WORLD,ierr)
+    !end if
+    !if(id==0) then 
+    !  call MPI_RECV(u(NQX+1:2*NQX,:,:,:,:,:,:),NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,1,1,MPI_COMM_WORLD,stat,ierr)
+    !  !print*, 0
+    !  !print*, usub(1,1,1,1,1,:,:)
+    !  u(1:NQX,:,:,:,:,:,:)=usub
+
+    !end if
+     do i=0,num_procs-1
+       if(id==i) then 
+         links=part_map(id,0)    
+         rechts=part_map(id,1)    
+         call MPI_SSEND(u(1,:,:,1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
+         call MPI_SSEND(u(NQX,:,:,n+1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
+       ELSEIF(id==part_map(i,0).AND.id==part_map(i,1)) then
+         call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
+         call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
+         
+       elseif(id==part_map(i,0)) then
+         call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
+       ELSEIF(id==part_map(i,1)) then 
+         call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
+       end if
+     end do
     case(2)
-      print*, 1239
-      do i=0,num_procs
+      do i=0,num_procs-1
         if(id==i) then 
           links=part_map(id,2)    
           rechts=part_map(id,3)    
           call MPI_SEND(u(:,1,:,:,1,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
           call MPI_SEND(u(:,NQY,:,:,n+1,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
-        ELSEIF(id==part_map(i,0).AND.id==part_map(i,1)) then
+        ELSEIF(id==part_map(i,2).AND.id==part_map(i,3)) then
           call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
           call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,0)) then
+        ELSEIF(id==part_map(i,2)) then
           call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,1)) then 
+        ELSEIF(id==part_map(i,3)) then 
           call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
         end if
     end do
     case(3)
-    do i=0,num_procs
+    do i=0,num_procs-1
         if(id==i) then 
           links=part_map(id,4)    
           rechts=part_map(id,5)    
           call MPI_SEND(u(:,:,1,:,:,1,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
           call MPI_SEND(u(:,:,NQZ,:,:,n+1,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
-        ELSEIF(id==part_map(i,0).AND.id==part_map(i,1)) then
-          call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,i,MPI_COMM_WORLD,stat,ierr)
-          call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,i,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,0)) then
-          call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,i,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,1)) then 
-          call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,i,MPI_COMM_WORLD,stat,ierr)
+        ELSEIF(id==part_map(i,4).AND.id==part_map(i,5)) then
+          call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
+          call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
+        ELSEIF(id==part_map(i,4)) then
+          call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
+      ELSEIF(id==part_map(i,5)) then 
+          call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
         end if
     end do
   END SELECT
@@ -994,6 +1007,7 @@ CONTAINS
     u(:,:,:,:,:,:,3)=1.0_RP*u(:,:,:,:,:,:,1)
     u(:,:,:,:,:,:,4)=1.0_RP*u(:,:,:,:,:,:,1)
     u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+    DEALLOCATE(xyz)
   END SUBROUTINE computeSolution
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeLocalLaxFriedrich(uL,uR,dir,pos,whichflux,result,N)
@@ -1211,24 +1225,24 @@ CONTAINS
  !   ENDDO ! step
  ! END SUBROUTINE RungeKutta5explizit
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE RungeKutta5explizitParallel(u,nq,n,numvar,dt,Dval,t,whichflux,vis)
+  SUBROUTINE RungeKutta5explizitParallel(u,nq,n,numvar,dt,Dval,t,whichflux,vis,xyzsub)
     IMPLICIT NONE
     !u=bekannte Werte
-    INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq
-    CHARACTER(len=2),INTENT(IN)                                                      :: whichflux,vis
-    REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                               :: Dval
+    INTEGER      ,INTENT(IN)                                                            :: numvar,n,nq
+    CHARACTER(len=2),INTENT(IN)                                                         :: whichflux,vis
+    REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                                  :: Dval
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:numvar) :: u
-    REAL(KIND=RP),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:numvar) :: g
-    REAL(KIND=RP),INTENT(IN)                                                         :: dt,t
+    REAL(KIND=RP),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:numvar)               :: g
+    REAL(KIND=RP),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:3)                    :: xyzsub
+    REAL(KIND=RP),INTENT(IN)                                                            :: dt,t
     !local
-    INTEGER                                                                          :: step
-    INTEGER                                                                          :: i
-    REAL(KIND=RP),DIMENSION(5)                                                       :: a,b,c
-    
+    INTEGER                                                                             :: step
+    INTEGER                                                                             :: i
+    REAL(KIND=RP),DIMENSION(5)                                                          :: a,b,c
 
      
     
-    g=Rmanu(u,n,nq,NQX,NQY,NQZ,Dval,t,whichflux,vis,dt)
+    g=Rmanu(u,n,nq,Dval,t,whichflux,vis,dt,xyzsub)
     a=(/0.0_rp, -567301805773.0_rp/1357537059087.0_rp,&
       -2404267990393.0_rp/2016746695238.0_rp, -3550918686646.0_rp/2091501179385.0_rp,&
       -1275806237668.0_rp/842570457699.0_rp/)
@@ -1239,22 +1253,21 @@ CONTAINS
       1720146321549.0_rp/2090206949498.0_rp, 3134564353537.0_rp/4481467310338.0_rp,&
       2277821191437.0_rp/14882151754819.0_rp /) 
     DO step=1,5
-      g=a(step)*g+Rmanu(u,n,nq,NQX,NQY,NQZ,Dval,t+b(step)*dt,whichflux,vis,b(step)*dt)
+      g=a(step)*g+Rmanu(u,n,nq,Dval,t+b(step)*dt,whichflux,vis,b(step)*dt,xyzsub)
       u=u+c(step)*dt*g
     ENDDO ! step
 
   END SUBROUTINE RungeKutta5explizitParallel
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine Driver_zeit (u,nq,n,numvar,dt,D,t,tend,whichflux,vis,CFL)
+  subroutine Driver_zeit (u,nq,n,numvar,dt,D,t,tend,whichflux,vis,CFL,xnum,ynum,znum)
     implicit none
-    INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq
+    INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq,xnum,ynum,znum
     CHARACTER(len=2),INTENT(IN)                                                      :: whichflux,vis
     REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                               :: D
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:numvar) :: u
-    REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: usub
+    REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: usub,xyzsub
     REAL(KIND=RP)                                                         :: dt,t,tend,dtz
     REAL(KIND=RP) :: a,CFL
-    call MPI_Init(ierr) !starting MPI
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr) !getting the number of processors
     call MPI_COMM_RANK(MPI_COMM_WORLD,id,ierr)
     !we assume nq**3 is divisible by num_procs
@@ -1266,17 +1279,14 @@ CONTAINS
       call MPI_Finalize(ierr)
       print*,'Number of elements(',nq**3,') is not divided by ',num_procs
     END IF
+    NQX=NQ/xnum
+    NQY=NQ/ynum
+    NQZ=NQ/znum
     ALLOCATE(part_map(0:num_procs-1,0:5))
-   
-    part_map(:,:)=0
-    part_map(0,0)=1
-    part_map(0,1)=1
-    NQX=nq/num_procs
-    NQY=NQ 
-    NQZ=NQ 
-    
-    allocate(usub(1:nqx,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:5))
-    usub=u(id*NQX+1:(id+1)*NQX,:,:,:,:,:,:)
+    ALLOCATE(procs_map(0:xnum-1,0:ynum-1,0:znum-1))
+    allocate(usub(1:nqx,1:nqy,1:nqz,1:n+1,1:n+1,1:n+1,1:5))
+    allocate(xyzsub(1:nqx,1:nqy,1:nqz,1:n+1,1:n+1,1:n+1,1:3))
+    call split_Gebiet(u,usub,xyzsub,xnum,ynum,znum,n,nq)
 
     DO while(tend-t>epsilon(dt))
 
@@ -1295,33 +1305,123 @@ CONTAINS
     ! print*, dt
       call MPI_SEND(dt,1,MPI_DOUBLE_PRECISION,1,23,MPI_COMM_WORLD,ierr)
     else
+      !!! andern für mehr als 2
       call MPI_RECV(dtz,1,MPI_DOUBLE_PRECISION,0,23,MPI_COMM_WORLD,stat,ierr)
       dt=dtz
-    ! print*, 'id'
-    ! print*, id
-    ! print*, 'Dt'
-    ! print*, dtz
     end if
 
       IF(t+dt>tend) dt=tend-t
-      call RungeKutta5explizitParallel(usub,nq,n,5,dt,D,t,whichflux,vis)
+      call RungeKutta5explizitParallel(usub,nq,n,5,dt,D,t,whichflux,vis,xyzsub)
       t=t+dt
-    if(id==1) then 
-      !print*, 1
-      !print*, usub(1,1,1,1,1,:,:)
-      call MPI_SEND(usub,NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,0,1,MPI_COMM_WORLD,ierr)
-    end if
-    if(id==0) then 
-      call MPI_RECV(u(NQX+1:2*NQX,:,:,:,:,:,:),NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,1,1,MPI_COMM_WORLD,stat,ierr)
-      !print*, 0
-      !print*, usub(1,1,1,1,1,:,:)
-      u(1:NQX,:,:,:,:,:,:)=usub
-    stop
-    end if
+      call collect_solution(u,usub,xnum,ynum,znum,n,nq)
     END DO
-    
-    call MPI_Finalize(ierr)
+   DEALLOCATE(xyzsub,usub,part_map) 
+    DEALLOCATE(x,w,xmit,xges)
+    DEALLOCATE(procs_map)
     end subroutine
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine collect_solution(u,usub,xnum,ynum,znum,n,nq)
+  implicit none
+  REAL(KIND=RP),INTENT(INout),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5)       :: u
+  REAL(KIND=RP),INTENT(IN),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:5) :: usub
+  INTEGER                                                                        :: m,l,o,i,xnum,ynum,znum
+  INTEGER                                                                        :: n,nq
+
+  !procs_map speichert die Position der processors im gebiet
+  if(id/=0) then
+      call MPI_SSEND(usub,NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,0,id,MPI_COMM_WORLD,ierr)
+  endif
+  if(id==0) then
+  i=0
+  do m=0,xnum-1
+    do l=0,ynum-1
+      do o=0,znum-1
+        if(i==0) then 
+         i=i+1
+          continue
+        else
+      call MPI_RECV(u(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)&
+        ,NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,i,i,MPI_COMM_WORLD,stat,ierr)
+         i=i+1
+       end if
+      enddo 
+    enddo 
+  enddo 
+  
+  u(0*NQX+1:(0+1)*NQX,0*NQY+1:(0+1)*NQY,0*NQZ+1:(0+1)*NQZ,:,:,:,:)=usub
+end if
+  
+  end subroutine
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine split_Gebiet(u,usub,xyzsub,xnum,ynum,znum,n,nq)
+  implicit none
+  REAL(KIND=RP),INTENT(IN),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5)       :: u
+  REAL(KIND=RP),INTENT(INout),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:5) :: usub
+  REAL(KIND=RP),INTENT(INout),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:3) :: xyzsub
+  INTEGER                                                                        :: m,l,o,i,xnum,ynum,znum,mmin1,lmin1,omin1
+  INTEGER                                                                        :: mplus1,lplus1,oplus1,n,nq
+
+  !procs_map speichert die Position der processors im gebiet
+  i=0
+  do m=0,xnum-1
+    do l=0,ynum-1
+      do o=0,znum-1
+        procs_map(m,l,o)=i
+       if(id==i) then
+       usub=u(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)
+       xyzsub=xyz(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)
+       endif 
+        i=i+1
+      enddo 
+    enddo 
+  enddo 
+  
+  i=0
+  do m=0,xnum-1
+    do l=0,ynum-1
+      do o=0,znum-1 
+        if(m==0) then
+          mmin1=xnum-1
+        else
+          mmin1=m-1 
+        endif
+        if(l==0) then
+          lmin1=ynum-1
+        else
+          lmin1=l-1 
+        endif
+        if(o==0) then
+          omin1=znum-1
+        else
+          omin1=o-1 
+        endif
+        if(m==xnum-1) then
+          mplus1=0
+        else
+          mplus1=m+1 
+        endif
+        if(l==ynum-1) then
+          lplus1=0
+        else
+          lplus1=l+1 
+        endif
+        if(o==znum-1) then
+          oplus1=0
+        else
+          oplus1=o+1 
+        endif
+          part_map(i,0)=procs_map(mmin1,l,o)
+          part_map(i,1)=procs_map(mplus1,l,o)
+          part_map(i,2)=procs_map(m,lmin1,o)
+          part_map(i,3)=procs_map(m,lplus1,o)
+          part_map(i,4)=procs_map(m,l,omin1)
+          part_map(i,5)=procs_map(m,l,oplus1)
+          
+        i=i+1
+      enddo 
+    enddo 
+  enddo 
+  end subroutine
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeError (u,usolution,NQ,N,result)
     IMPLICIT NONE
@@ -1334,7 +1434,6 @@ CONTAINS
     result(4)=maxval(abs(u(:,:,:,:,:,:,4)-usolution(:,:,:,:,:,:,4)))
     result(5)=maxval(abs(u(:,:,:,:,:,:,5)-usolution(:,:,:,:,:,:,5)))
     print*, result
-    DEALLOCATE(xyz,x,w,xmit,xges)
   END SUBROUTINE computeError
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeEOC (errors,n,nq,anz,result)
@@ -1351,4 +1450,15 @@ CONTAINS
 
   END SUBROUTINE computeEOC
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine beginne_para ()
+    implicit none
+    
+    call MPI_Init(ierr) !starting MPI
+    end subroutine
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine ende_para ()
+    implicit none
+    
+    call MPI_Finalize(ierr)
+    end subroutine
 END MODULE Zeitintegration
