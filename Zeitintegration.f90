@@ -170,52 +170,120 @@ CONTAINS
                 solutionsub=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
                 call Residuum(NQ,N,num_elem,t,vis,res)
                 call computeGradient(usub,uBoundL,uBoundR,n,nq,num_elem,D,dux,duy,duz)
-                stop
-                !sending the Gradient boundary data
-                do i=0,num_procs-2
-
-                    !sending the boundary data
-                    if (i==0) then
-                        call MPI_SEND(dux(:,:,nq,:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,10,MPI_COMM_WORLD,ierr)
-                        call MPI_SEND(duy(:,:,nq,:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,20,MPI_COMM_WORLD,ierr)
-                        call MPI_SEND(duz(:,:,nq,:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,30,MPI_COMM_WORLD,ierr)
-                    else
-                        call MPI_SEND(dux(:,:,i*floor(per_proc),:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,&
-                            i,3*num_procs+id,MPI_COMM_WORLD,ierr)
-                        call MPI_SEND(duy(:,:,i*floor(per_proc),:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,&
-                        4*num_procs+id,MPI_COMM_WORLD,ierr)
-                        call MPI_SEND(duz(:,:,i*floor(per_proc),:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,&
-                        5*num_procs+id,MPI_COMM_WORLD,ierr)
-                    end if
-                    call MPI_SEND(dux(:,:,(i+1)*floor(per_proc)+1,:,:,1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,&
-                    6*num_procs+id,MPI_COMM_WORLD,ierr)
-                    call MPI_SEND(duy(:,:,(i+1)*floor(per_proc)+1,:,:,1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,&
-                    7*num_procs+id,MPI_COMM_WORLD,ierr)
-                    call MPI_SEND(duz(:,:,(i+1)*floor(per_proc)+1,:,:,1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,&
-                    8*num_procs+id,MPI_COMM_WORLD,ierr)
-                enddo
-                !sending boundary data for the last processor
-                call MPI_SEND(dux(:,:,(num_procs)*floor(per_proc),:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,&
-                    num_procs-1,10,MPI_COMM_WORLD,ierr)
-                call MPI_SEND(duy(:,:,(num_procs)*floor(per_proc),:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,&
-                    num_procs-1,20,MPI_COMM_WORLD,ierr)
-                call MPI_SEND(duz(:,:,(num_procs)*floor(per_proc),:,:,N+1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,&
-                    num_procs-1,30,MPI_COMM_WORLD,ierr)
-                call MPI_SEND(dux(:,:,1,:,:,1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,0,MPI_COMM_WORLD,ierr)
-                call MPI_SEND(duy(:,:,1,:,:,1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,1,MPI_COMM_WORLD,ierr)
-                call MPI_SEND(duz(:,:,1,:,:,1,:),nq*nq*(N+1)**2*5,MPI_DOUBLE_PRECISIOn,i,2,MPI_COMM_WORLD,ierr)
-                !receiving of gradient data
                 allocate(duxL(1:nq,1:nq,1,1:n+1,1:n+1,1,1:5),duyL(1:nq,1:nq,1,1:n+1,1:n+1,1,1:5),&
                     duzL(1:nq,1:nq,1,1:n+1,1:n+1,1,1:5))
                 allocate(duxR(1:nq,1:nq,1,1:n+1,1:n+1,1,1:5),duyR(1:nq,1:nq,1,1:n+1,1:n+1,1,1:5),&
                     duzR(1:nq,1:nq,1,1:n+1,1:n+1,1,1:5))
+                !sending the Gradient boundary data
+                !boundary data for dux
+                !left
+                
+                if(id.NE.num_procs-1) then
+                	 call MPI_SEND(dux(:,:,num_elem,:,:,N+1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 id+1,5*num_procs,MPI_COMM_WORLD,ierr)
+          				 if(id.NE.0) then
+          				 call MPI_RECV(duxl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id-1,&
+          				 5*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 else
+          				 call MPI_RECV(duxl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,num_procs-1,&
+          				 5*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 endif
+              	 else
+              	 call MPI_RECV(duxl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id-1,&
+          				 5*num_procs,MPI_COMM_WORLD,stat,ierr)
+              	 call MPI_SEND(duxl(:,:,num_elem,:,:,N+1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 0,5*num_procs,MPI_COMM_WORLD,ierr)
+              	 endif
+              	 !right
+            	 if(id.NE.0) then
+            	 	 call MPI_SEND(dux(:,:,1,:,:,1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 id-1,6*num_procs,MPI_COMM_WORLD,ierr)
+                	 if (id.NE.num_procs-1) then
+                	 	call MPI_RECV(duxr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id+1,&
+        				 		6*num_procs,MPI_COMM_WORLD,stat,ierr)	
+        				 		else
+        				 		call MPI_RECV(duxr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,0,&
+          				 6*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 endif
+      				 else
+      				 	call MPI_RECV(duxr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id+1,&
+          				 6*num_procs,MPI_COMM_WORLD,stat,ierr)
+              	 call MPI_SEND(dux(:,:,1,:,:,1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 num_procs-1,6*num_procs,MPI_COMM_WORLD,ierr)
+            	 endif
+            	 !boundary data for duy
+            	 !left
+            	   if(id.NE.num_procs-1) then
+                	 call MPI_SEND(duy(:,:,num_elem,:,:,N+1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 id+1,7*num_procs,MPI_COMM_WORLD,ierr)
+          				 if(id.NE.0) then
+          				 call MPI_RECV(duyl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id-1,&
+          				 7*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 else
+          				 call MPI_RECV(duyl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,num_procs-1,&
+          				 7*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 endif
+              	 else
+              	 call MPI_RECV(duyl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id-1,&
+          				 7*num_procs,MPI_COMM_WORLD,stat,ierr)
+              	 call MPI_SEND(duyl(:,:,num_elem,:,:,N+1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 0,7*num_procs,MPI_COMM_WORLD,ierr)
+              	 endif
+              	 !right
+            	 if(id.NE.0) then
+            	 	 call MPI_SEND(duy(:,:,1,:,:,1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 id-1,8*num_procs,MPI_COMM_WORLD,ierr)
+                	 if (id.NE.num_procs-1) then
+                	 	call MPI_RECV(duyr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id+1,&
+        				 		8*num_procs,MPI_COMM_WORLD,stat,ierr)	
+        				 		else
+        				 		call MPI_RECV(duyr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,0,&
+          				 8*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 endif
+      				 else
+      				 	call MPI_RECV(duyr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id+1,&
+          				 8*num_procs,MPI_COMM_WORLD,stat,ierr)
+              	 call MPI_SEND(duy(:,:,1,:,:,1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 num_procs-1,8*num_procs,MPI_COMM_WORLD,ierr)
+            	 endif
+            	 !boundary data for duz
+            	 !left
+            	   if(id.NE.num_procs-1) then
+                	 call MPI_SEND(duz(:,:,num_elem,:,:,N+1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 id+1,9*num_procs,MPI_COMM_WORLD,ierr)
+          				 if(id.NE.0) then
+          				 call MPI_RECV(duzl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id-1,&
+          				 9*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 else
+          				 call MPI_RECV(duzl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,num_procs-1,&
+          				 9*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 endif
+              	 else
+              	 call MPI_RECV(duzl,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id-1,&
+          				 9*num_procs,MPI_COMM_WORLD,stat,ierr)
+              	 call MPI_SEND(duzl(:,:,num_elem,:,:,N+1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 0,9*num_procs,MPI_COMM_WORLD,ierr)
+              	 endif
+              	 !right
+            	 if(id.NE.0) then
+            	 	 call MPI_SEND(duz(:,:,1,:,:,1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 id-1,10*num_procs,MPI_COMM_WORLD,ierr)
+                	 if (id.NE.num_procs-1) then
+                	 	call MPI_RECV(duzr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id+1,&
+        				 		10*num_procs,MPI_COMM_WORLD,stat,ierr)	
+        				 		else
+        				 		call MPI_RECV(duzr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,0,&
+          				 10*num_procs,MPI_COMM_WORLD,stat,ierr)
+          				 endif
+      				 else
+      				 	call MPI_RECV(duzr,nq**2*(n+1)**2*5,MPI_DOUBLE_PRECISION,id+1,&
+          				 10*num_procs,MPI_COMM_WORLD,stat,ierr)
+              	 call MPI_SEND(duz(:,:,1,:,:,1,:),nq**2*(N+1)**2*5,MPI_DOUBLE_PRECISION,&
+                	 num_procs-1,10*num_procs,MPI_COMM_WORLD,ierr)
+            	 endif
+                
+                
 
-                call MPI_RECV(duxL,nq*nq*(n+1)**2*5,MPI_DOUBLE_PRECISIOn,0,10,MPI_COMM_WORLD,stat,ierr)
-                call MPI_RECV(duyL,nq*nq*(n+1)**2*5,MPI_DOUBLE_PRECISIOn,0,20,MPI_COMM_WORLD,stat,ierr)
-                call MPI_RECV(duzL,nq*nq*(n+1)**2*5,MPI_DOUBLE_PRECISIOn,0,30,MPI_COMM_WORLD,stat,ierr)
-                call MPI_RECV(duxR,nq*nq*(n+1)**2*5,MPI_DOUBLE_PRECISIOn,0,0,MPI_COMM_WORLD,stat,ierr)
-                call MPI_RECV(duxR,nq*nq*(n+1)**2*5,MPI_DOUBLE_PRECISIOn,0,1,MPI_COMM_WORLD,stat,ierr)
-                call MPI_RECV(duxR,nq*nq*(n+1)**2*5,MPI_DOUBLE_PRECISIOn,0,2,MPI_COMM_WORLD,stat,ierr)
                 call computeLviscous(usub,uBoundL,uBoundR,duxL,duxR,duyL,duyR,duzL,duzR,dux,duy,duz,D,1,N,NQ,num_elem,L1vis)
                 call computeLviscous(usub,uBoundL,uBoundR,duxL,duxR,duyL,duyR,duzL,duzR,dux,duy,duz,D,2,N,NQ,num_elem,L2vis)
                 call computeLviscous(usub,uBoundL,uBoundR,duxL,duxR,duyL,duyR,duzL,duzR,dux,duy,duz,D,3,N,NQ,num_elem,L3vis)
@@ -1274,6 +1342,8 @@ CONTAINS
         REAL(KIND=RP),INTENT(IN)                                                :: dt,t
 call MPI_BCAST(Dval,(n+1)**2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 call MPI_BCAST(dx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+if(.not.allocated(w)) allocate(w(1:n+1))
+call MPI_BCAST(w,(n+1),MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
         g=Rmanu(ustar,n,nq,Dval,t,whichflux,vis,dt)
         !a(1)=0.0_RP
         !b(1)=0.0_RP

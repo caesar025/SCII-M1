@@ -7,7 +7,7 @@ program Driver_Manufactured
     REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
     REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
     REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
-    CHARACTER(len=2)                                   :: whichflux='PI',vis='AD' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
+    CHARACTER(len=2)                                   :: whichflux='PI',vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
     CHARACTER(Len=3)                                    ::numChar
     CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
     REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
