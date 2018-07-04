@@ -155,7 +155,7 @@ CONTAINS
             ,duz(1:nq,1:nq,1:num_elem,1:n+1,1:n+1,1:n+1,1:5))
         allocate (L1vis(1:nq,1:nq,1:num_elem,1:n+1,1:n+1,1:n+1,1:5),L2vis(1:nq,1:nq,1:num_elem,1:n+1,1:n+1,1:n+1,1:5)&
             ,L3vis(1:nq,1:nq,1:num_elem,1:n+1,1:n+1,1:n+1,1:5))
-
+	
         CALL computeL(usub,uBoundL,uBoundR,D,1,L1,N,NQ,num_elem,whichflux)
         CALL computeL(usub,uBoundL,uBoundR,D,2,L2,N,NQ,num_elem,whichflux)
         CALL computeL(usub,uBoundL,uBoundR,D,3,L3,N,NQ,num_elem,whichflux)
@@ -167,7 +167,7 @@ CONTAINS
                 call Residuum(NQ,N,num_elem,t,vis,res)
                 solutionsub=solutionsub+res
             CASE('VI')
-                solution=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
+                solutionsub=8.0_RP/(dx**3)*(-0.25_RP*dx*dx*l1-0.25_RP*dx*dx*l2-0.25_RP*dx*dx*l3)
                 call Residuum(NQ,N,num_elem,t,vis,res)
                 call computeGradient(usub,uBoundL,uBoundR,n,nq,num_elem,D,dux,duy,duz)
                 stop
@@ -332,9 +332,11 @@ CONTAINS
                             DO k=1,N+1
                                 DO j=1,N+1
                                     DO i=1,N+1
-                                        CALL computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp,N)
+ call computeFsharp(u(m,l,o,i,j,k,:),u(m,l,o,:,j,k,:),dir,whichflux,Fsharp,N)
                                         DO var=1,5 !! besser
-                                            result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(i,:),Fsharp(:,var))
+
+     result(m,l,o,i,j,k,var)=2.0_RP*dot_product(D(i,:),Fsharp(:,var))
+
                                         ENDDO ! var
                                     ENDDO ! i
                                 ENDDO ! j
@@ -1270,6 +1272,8 @@ CONTAINS
         INTEGER                                                                 :: step
         REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
         REAL(KIND=RP),INTENT(IN)                                                :: dt,t
+call MPI_BCAST(Dval,(n+1)**2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+call MPI_BCAST(dx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
         g=Rmanu(ustar,n,nq,Dval,t,whichflux,vis,dt)
         !a(1)=0.0_RP
         !b(1)=0.0_RP
@@ -1301,11 +1305,12 @@ CONTAINS
             2277821191437.0_rp/14882151754819.0_rp /)
 
 
-				call MPI_BCAST(Dval,(n+1)**2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+				
 				
         DO step=1,5
         		call MPI_BCAST(ustar,nq**3*(n+1)**3*5,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-            g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux,vis,b(step)*dt)
+            call MPI_BCAST(g,nq**3*(n+1)**3*5,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+g=a(step)*g+Rmanu(ustar,n,nq,Dval,t+b(step)*dt,whichflux,vis,b(step)*dt)
             ustar=ustar+c(step)*dt*g
         ENDDO ! step
     END SUBROUTINE RungeKutta5explizit
