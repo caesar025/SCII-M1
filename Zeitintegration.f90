@@ -19,7 +19,6 @@ CONTAINS
     REAL(KIND=RP),DIMENSION(:,:),ALLOCATABLE         :: xin                 ! Hilfsvariablen
     ! local variables
     INTEGER                                          :: l,m,o,k,i,j                           ! Laufvariablen
-    !
     ALLOCATE(xi(1:n+1),xl(1:nq))
     ALLOCATE(xin(1:n+1,1:nq))
     ALLOCATE(x(1:N+1),w(1:N+1),xges(1:NQ*(N+1)),xmit(1:NQ+1))
@@ -193,29 +192,29 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-      
-      if(nq/=NQX) then
+
+      IF(nq/=NQX) THEN
         call comm_rand_bed(usub,urand,1,N) 
-      endif
+      ENDif
       DO o=1,NQZ
         DO l=1,NQY
           DO m=1,NQX
             IF (m==1) THEN
-              if(nq==nqx) then
+              IF(nq==nqx) THEN
                 uL=usub(NQX,l,o,N+1,:,:,:)
-              else
+              ELSE
                 uL=urand(1,l,o,:,:,:)
-              !  print*, UL
-              endif
+                !  print*, UL
+              ENDif
             ELSE
               uL=usub(m-1,l,o,N+1,:,:,:)
             ENDIF
             IF (m==NQX) THEN
-              if(nq==nqx) then
+              IF(nq==nqx) THEN
                 uR=usub(1,l,o,1,:,:,:)
-              else
+              ELSE
                 uR=urand(2,l,o,:,:,:)
-              end if
+              END IF
             ELSE
               uR=usub(m+1,l,o,1,:,:,:)
             ENDIF
@@ -227,7 +226,7 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o 
-  call computeGradientEinzeln(usub,urand,n,nq,D,du,dir)
+      call computeGradientEinzeln(usub,urand,n,nq,D,du,dir)
     CASE(2)
       allocate(urand(1:2,1:NQX,1:NQZ,1:N+1,1:N+1,1:5))
       DO o=1,NQZ
@@ -246,28 +245,28 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-      if(nq/=NQY) then
+      IF(nq/=NQY) THEN
         call comm_rand_bed(usub,urand,2,N) 
-      endif
+      ENDif
       DO o=1,NQZ
         DO l=1,NQY
           DO m=1,NQX
             !Randbedingungen
             IF (l==1) THEN
-            if(nq==nqy) then
-              uL=usub(m,nqy,o,:,N+1,:,:)
-            else
-              uL=urand(1,m,o,:,:,:)
-            endif
+              IF(nq==nqy) THEN
+                uL=usub(m,nqy,o,:,N+1,:,:)
+              ELSE
+                uL=urand(1,m,o,:,:,:)
+              ENDif
             ELSE
               uL=usub(m,l-1,o,:,N+1,:,:)
             ENDIF
             IF (l==nqy) THEN
-            if(nq==nqy) then
-              uR=usub(m,1,o,:,1,:,:)
-            else
-              uR=urand(2,m,o,:,:,:)
-            end if
+              IF(nq==nqy) THEN
+                uR=usub(m,1,o,:,1,:,:)
+              ELSE
+                uR=urand(2,m,o,:,:,:)
+              END IF
             ELSE
               uR=usub(m,l+1,o,:,1,:,:)
             ENDIF
@@ -279,7 +278,7 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-  call computeGradientEinzeln(usub,urand,n,nq,D,du,dir)
+      call computeGradientEinzeln(usub,urand,n,nq,D,du,dir)
     CASE(3)
       allocate(urand(1:2,1:NQX,1:NQY,1:N+1,1:N+1,1:5))
       DO o=1,NQZ
@@ -298,28 +297,28 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-      if(nq/=NQZ) then
+      IF(nq/=NQZ) THEN
         call comm_rand_bed(usub,urand,3,N) 
-      endif
+      ENDif
       DO o=1,NQZ
         DO l=1,NQY
           DO m=1,NQX
             !Randbedingungen
             IF (o==1) THEN
-              if(nq==nqz) then
+              IF(nq==nqz) THEN
                 uL=usub(m,l,nqz,:,:,N+1,:)
-              else
+              ELSE
                 uL=urand(1,m,l,:,:,:)
-              endif
+              ENDif
             ELSE
               uL=usub(m,l,o-1,:,:,N+1,:)
             ENDIF
             IF (o==nqz) THEN
-              if(nq==nqZ) then
+              IF(nq==nqZ) THEN
                 uR=usub(m,l,1,:,:,1,:)
-              else
+              ELSE
                 uR=urand(2,m,l,:,:,:)
-              end if
+              END IF
             ELSE
               uR=usub(m,l,o+1,:,:,1,:)
             ENDIF
@@ -331,72 +330,72 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-  call computeGradientEinzeln(usub,urand,n,nq,D,du,dir)
+      call computeGradientEinzeln(usub,urand,n,nq,D,du,dir)
     END SELECT
 
     DEALLOCATE(urand)
   END SUBROUTINE computeL
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine comm_rand_bed (u,urand,richtung,N)
-    implicit none
+  SUBROUTINE comm_rand_bed (u,urand,richtung,N)
+    IMPLICIT NONE
     INTEGER, INTENT(IN)                                :: richtung
     REAL(KIND=RP),DIMENSION(:,:,:,:,:,:),INTENT(INOUT) :: urand
     REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),INTENT(IN)  :: u
     INTEGER                                            :: links,rechts,i,l
-    INTEGER,INTENT(in)                                 :: N
+    INTEGER,INTENT(IN)                                 :: N
     ! urand(links=1/rechts=2,zelle,zelle,matrix am Rand, matrix am Rand, variablen)
     SELECT CASE(richtung)
     case(1)
-     do i=0,num_procs-1
-       if(id==i) then 
-         links=part_map(id,0)    
-         rechts=part_map(id,1)    
-         call MPI_SSEND(u(1,:,:,1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
-         call MPI_SSEND(u(NQX,:,:,n+1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
-       ELSEIF(id==part_map(i,0).AND.id==part_map(i,1)) then
-         call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
-         call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-         
-       elseif(id==part_map(i,0)) then
-         call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
-       ELSEIF(id==part_map(i,1)) then 
-         call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-       end if
-     end do
+      DO i=0,num_procs-1
+        IF(id==i) THEN 
+          links=part_map(id,0)    
+          rechts=part_map(id,1)    
+          call MPI_SSEND(u(1,:,:,1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
+          call MPI_SSEND(u(NQX,:,:,n+1,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
+        ELSEIF(id==part_map(i,0).AND.id==part_map(i,1)) THEN
+          call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
+          call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
+
+        ELSEif(id==part_map(i,0)) THEN
+          call MPI_RECV(urand(2,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
+        ELSEIF(id==part_map(i,1)) THEN 
+          call MPI_RECV(urand(1,:,:,:,:,:),NQY*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
+        END IF
+      END DO
     case(2)
-      do i=0,num_procs-1
-        if(id==i) then 
+      DO i=0,num_procs-1
+        IF(id==i) THEN 
           links=part_map(id,2)    
           rechts=part_map(id,3)    
           call MPI_SEND(u(:,1,:,:,1,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
           call MPI_SEND(u(:,NQY,:,:,n+1,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
-        ELSEIF(id==part_map(i,2).AND.id==part_map(i,3)) then
+        ELSEIF(id==part_map(i,2).AND.id==part_map(i,3)) THEN
           call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
           call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,2)) then
+        ELSEIF(id==part_map(i,2)) THEN
           call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,3)) then 
+        ELSEIF(id==part_map(i,3)) THEN 
           call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQZ*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-        end if
-    end do
+        END IF
+      END DO
     case(3)
-    do i=0,num_procs-1
-        if(id==i) then 
+      DO i=0,num_procs-1
+        IF(id==i) THEN 
           links=part_map(id,4)    
           rechts=part_map(id,5)    
           call MPI_SEND(u(:,:,1,:,:,1,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,links,1,MPI_COMM_WORLD,ierr)
           call MPI_SEND(u(:,:,NQZ,:,:,n+1,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,rechts,2,MPI_COMM_WORLD,ierr)
-        ELSEIF(id==part_map(i,4).AND.id==part_map(i,5)) then
+        ELSEIF(id==part_map(i,4).AND.id==part_map(i,5)) THEN
           call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
           call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-        ELSEIF(id==part_map(i,4)) then
+        ELSEIF(id==part_map(i,4)) THEN
           call MPI_RECV(urand(2,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,1,MPI_COMM_WORLD,stat,ierr)
-      ELSEIF(id==part_map(i,5)) then 
+        ELSEIF(id==part_map(i,5)) THEN 
           call MPI_RECV(urand(1,:,:,:,:,:),NQX*NQY*(N+1)**2*5,MPI_DOUBLE_PRECISION,i,2,MPI_COMM_WORLD,stat,ierr)
-        end if
-    end do
-  END SELECT
-  end subroutine
+        END IF
+      END DO
+    END SELECT
+  END SUBROUTINE
   !    SUBROUTINE calculateEuler3DFlux(u,dir,result)
   !    !SUBROUTINE gets the values of u and return the flux for the spcified direction
   !    !dir=1,2,3 stands for x,y,z direction
@@ -461,12 +460,12 @@ CONTAINS
                 DO var=1,5
                   SELECT CASE (richtung)
                   Case(1)
-                  du(m,l,o,i,j,k,var)=-dot_product(D(:,i),u(m,l,o,:,j,k,var)*w)!+surface term 
+                    du(m,l,o,i,j,k,var)=-dot_product(D(:,i),u(m,l,o,:,j,k,var)*w)!+surface term 
                   Case(2)
-                  du(m,l,o,i,j,k,var)=-dot_product(D(:,j),u(m,l,o,i,:,k,var)*w)!+surface term
+                    du(m,l,o,i,j,k,var)=-dot_product(D(:,j),u(m,l,o,i,:,k,var)*w)!+surface term
                   Case(3)
-                  du(m,l,o,i,j,k,var)=-dot_product(D(:,k),u(m,l,o,i,j,:,var)*w)!+surface term
-                end SELECT
+                    du(m,l,o,i,j,k,var)=-dot_product(D(:,k),u(m,l,o,i,j,:,var)*w)!+surface term
+                  END SELECT
                 END DO !var
               END DO !k
             END DO !j
@@ -476,71 +475,71 @@ CONTAINS
           !x-direction
           SELECT CASE (richtung)
           CASE(1)
-          IF(m==1) THEN
-              if(nq==nqx) then
+            IF(m==1) THEN
+              IF(nq==nqx) THEN
                 uL=u(NQX,l,o,N+1,:,:,:)
-              else
+              ELSE
                 uL=urand(1,l,o,:,:,:)
-              endif
-            du(m,l,o,1,:,:,:)=-(u(m,l,o,1,:,:,:)+uL)*1.0_RP/2.0_RP+du(m,l,o,1,:,:,:)
-            du(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,N+1,:,:,:)
-          ELSEif(m==nqx) THEN
-              if(nq==nqx) then
+              ENDif
+              du(m,l,o,1,:,:,:)=-(u(m,l,o,1,:,:,:)+uL)*1.0_RP/2.0_RP+du(m,l,o,1,:,:,:)
+              du(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,N+1,:,:,:)
+            ELSEif(m==nqx) THEN
+              IF(nq==nqx) THEN
                 uR=u(1,l,o,1,:,:,:)
-              else
+              ELSE
                 uR=urand(2,l,o,:,:,:)
-              end if
-            du(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,1,:,:,:)
-            du(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+uR)*1.0_RP/2.0_RP+du(m,l,o,N+1,:,:,:)
-          ELSE
-            du(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,1,:,:,:)
-            du(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,N+1,:,:,:)
-          END IF
+              END IF
+              du(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,1,:,:,:)
+              du(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+uR)*1.0_RP/2.0_RP+du(m,l,o,N+1,:,:,:)
+            ELSE
+              du(m,l,o,1,:,:,:)=-(u(m-1,l,o,N+1,:,:,:)+u(m,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,1,:,:,:)
+              du(m,l,o,N+1,:,:,:)=+(u(m,l,o,N+1,:,:,:)+u(m+1,l,o,1,:,:,:))*1.0_RP/2.0_RP+du(m,l,o,N+1,:,:,:)
+            END IF
           CASE(2)
-          !y-direction
-          IF(l==1) THEN
-            if(nq==nqy) then
-              uL=u(m,nqy,o,:,N+1,:,:)
-            else
-              uL=urand(1,m,o,:,:,:)
-            endif
-            du(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+uL)*1.0_RP/2.0_RP+du(m,l,o,:,1,:,:)
-            du(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,N+1,:,:)
-          ELSEif(l==nqy) THEN
-            if(nq==nqy) then
-              uR=u(m,1,o,:,1,:,:)
-            else
-              uR=urand(2,m,o,:,:,:)
-            end if
-            du(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,l-1,o,:,N+1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,1,:,:)
-            du(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+uR)*1.0_RP/2.0_RP+du(m,l,o,:,N+1,:,:)
-          ELSE
-            du(m,l,o,:,1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,1,:,:)
-            du(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,N+1,:,:)
-          END IF
+            !y-direction
+            IF(l==1) THEN
+              IF(nq==nqy) THEN
+                uL=u(m,nqy,o,:,N+1,:,:)
+              ELSE
+                uL=urand(1,m,o,:,:,:)
+              ENDif
+              du(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+uL)*1.0_RP/2.0_RP+du(m,l,o,:,1,:,:)
+              du(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,N+1,:,:)
+            ELSEif(l==nqy) THEN
+              IF(nq==nqy) THEN
+                uR=u(m,1,o,:,1,:,:)
+              ELSE
+                uR=urand(2,m,o,:,:,:)
+              END IF
+              du(m,l,o,:,1,:,:)=-(u(m,l,o,:,1,:,:)+u(m,l-1,o,:,N+1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,1,:,:)
+              du(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+uR)*1.0_RP/2.0_RP+du(m,l,o,:,N+1,:,:)
+            ELSE
+              du(m,l,o,:,1,:,:)=-(u(m,l-1,o,:,N+1,:,:)+u(m,l,o,:,1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,1,:,:)
+              du(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/2.0_RP+du(m,l,o,:,N+1,:,:)
+            END IF
           CASE(3)
-          !z-direction
-          IF(o==1) THEN
-              if(nq==nqz) then
+            !z-direction
+            IF(o==1) THEN
+              IF(nq==nqz) THEN
                 uL=u(m,l,nqz,:,:,N+1,:)
-              else
+              ELSE
                 uL=urand(1,m,l,:,:,:)
-              endif
-            du(m,l,o,:,:,1,:)=-(uL+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,1,:)
-            du(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,N+1,:)
-          ELSEif(o==nqz) THEN
-              if(nq==nqZ) then
+              ENDif
+              du(m,l,o,:,:,1,:)=-(uL+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,1,:)
+              du(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,N+1,:)
+            ELSEif(o==nqz) THEN
+              IF(nq==nqZ) THEN
                 uR=u(m,l,1,:,:,1,:)
-              else
+              ELSE
                 uR=urand(2,m,l,:,:,:)
-              end if
-            du(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,1,:)
-            du(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+uR)*1.0_RP/2.0_RP+du(m,l,o,:,:,N+1,:)
-          ELSE
-            du(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,1,:)
-            du(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,N+1,:)
-          END IF
-        end SELECT
+              END IF
+              du(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,1,:)
+              du(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+uR)*1.0_RP/2.0_RP+du(m,l,o,:,:,N+1,:)
+            ELSE
+              du(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,1,:)
+              du(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+du(m,l,o,:,:,N+1,:)
+            END IF
+          END SELECT
         END DO !o
       ENDdo!l
     END DO!m
@@ -553,12 +552,12 @@ CONTAINS
               DO k=1,n+1
                 SELECT CASE(richtung)
                 Case(1)
-                du(m,l,o,i,j,k,:)=du(m,l,o,i,j,k,:)*2.0_RP/(w(i)*dx)
+                  du(m,l,o,i,j,k,:)=du(m,l,o,i,j,k,:)*2.0_RP/(w(i)*dx)
                 Case(2)
-                du(m,l,o,i,j,k,:)=du(m,l,o,i,j,k,:)*2.0_RP/(w(j)*dx)
+                  du(m,l,o,i,j,k,:)=du(m,l,o,i,j,k,:)*2.0_RP/(w(j)*dx)
                 Case(3)
-                du(m,l,o,i,j,k,:)=du(m,l,o,i,j,k,:)*2.0_RP/(w(k)*dx)
-              END SELECT
+                  du(m,l,o,i,j,k,:)=du(m,l,o,i,j,k,:)*2.0_RP/(w(k)*dx)
+                END SELECT
               END DO !k
             END DO !j
           END DO !i
@@ -707,29 +706,29 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-      if(nq/=NQX) then
+      IF(nq/=NQX) THEN
         call comm_rand_bed(u,urand,1,N) 
         call comm_rand_bed(dux,duxrand,1,N) 
         call comm_rand_bed(duy,duyrand,1,N) 
         call comm_rand_bed(duz,duzrand,1,N) 
-      endif
+      ENDif
 
       DO o=1,NQZ
         DO l=1,NQY
           DO m=1,NQX
             !Randbedingungen
             IF (m==1) THEN
-              if(nq==nqx) then
+              IF(nq==nqx) THEN
                 uL=u(NQX,l,o,N+1,:,:,:)
-              duRandl(:,:,:,1)=dux(nq,l,o,N+1,:,:,:)
-              duRandl(:,:,:,2)=duy(nq,l,o,N+1,:,:,:)
-              duRandl(:,:,:,3)=duz(nq,l,o,N+1,:,:,:)
-              else
+                duRandl(:,:,:,1)=dux(nq,l,o,N+1,:,:,:)
+                duRandl(:,:,:,2)=duy(nq,l,o,N+1,:,:,:)
+                duRandl(:,:,:,3)=duz(nq,l,o,N+1,:,:,:)
+              ELSE
                 uL=urand(1,l,o,:,:,:)
-              duRandl(:,:,:,1)=duxrand(1,l,o,:,:,:)
-              duRandl(:,:,:,2)=duyrand(1,l,o,:,:,:)
-              duRandl(:,:,:,3)=duzrand(1,l,o,:,:,:)
-              endif
+                duRandl(:,:,:,1)=duxrand(1,l,o,:,:,:)
+                duRandl(:,:,:,2)=duyrand(1,l,o,:,:,:)
+                duRandl(:,:,:,3)=duzrand(1,l,o,:,:,:)
+              ENDif
             ELSE
               uL=u(m-1,l,o,N+1,:,:,:)
               duRandl(:,:,:,1)=dux(m-1,l,o,N+1,:,:,:)
@@ -737,17 +736,17 @@ CONTAINS
               duRandl(:,:,:,3)=duz(m-1,l,o,N+1,:,:,:)
             ENDIF
             IF (m==NQX) THEN
-              if(nq==nqx) then
-              uR=u(1,l,o,1,:,:,:)
-              duRandr(:,:,:,1)=dux(1,l,o,1,:,:,:)
-              duRandr(:,:,:,2)=duy(1,l,o,1,:,:,:)
-              duRandr(:,:,:,3)=duz(1,l,o,1,:,:,:)
-              else
-              uR=urand(2,l,o,:,:,:)
-              duRandr(:,:,:,1)=duxrand(2,l,o,:,:,:)
-              duRandr(:,:,:,2)=duyrand(2,l,o,:,:,:)
-              duRandr(:,:,:,3)=duzrand(2,l,o,:,:,:)
-              end if
+              IF(nq==nqx) THEN
+                uR=u(1,l,o,1,:,:,:)
+                duRandr(:,:,:,1)=dux(1,l,o,1,:,:,:)
+                duRandr(:,:,:,2)=duy(1,l,o,1,:,:,:)
+                duRandr(:,:,:,3)=duz(1,l,o,1,:,:,:)
+              ELSE
+                uR=urand(2,l,o,:,:,:)
+                duRandr(:,:,:,1)=duxrand(2,l,o,:,:,:)
+                duRandr(:,:,:,2)=duyrand(2,l,o,:,:,:)
+                duRandr(:,:,:,3)=duzrand(2,l,o,:,:,:)
+              END IF
             ELSE
               uR=u(m+1,l,o,1,:,:,:)
               duRandr(:,:,:,1)=dux(m+1,l,o,1,:,:,:)
@@ -806,30 +805,30 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-      if(nq/=NQY) then
+      IF(nq/=NQY) THEN
         call comm_rand_bed(u,urand,2,N) 
         call comm_rand_bed(dux,duxrand,2,N) 
         call comm_rand_bed(duy,duyrand,2,N) 
         call comm_rand_bed(duz,duzrand,2,N) 
-      endif
-            !Randbedingungen
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            
+      ENDif
+      !Randbedingungen
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
       DO o=1,NQZ
         DO l=1,NQY
           DO m=1,NQX
             IF (l==1) THEN
-              if(nq==nqy) then
-              uL=u(m,nqy,o,:,N+1,:,:)
-              duRandl(:,:,:,1)=dux(m,nq,o,:,N+1,:,:)
-              duRandl(:,:,:,2)=duy(m,nq,o,:,N+1,:,:)
-              duRandl(:,:,:,3)=duz(m,nq,o,:,N+1,:,:)
-              else
+              IF(nq==nqy) THEN
+                uL=u(m,nqy,o,:,N+1,:,:)
+                duRandl(:,:,:,1)=dux(m,nq,o,:,N+1,:,:)
+                duRandl(:,:,:,2)=duy(m,nq,o,:,N+1,:,:)
+                duRandl(:,:,:,3)=duz(m,nq,o,:,N+1,:,:)
+              ELSE
                 uL=urand(1,m,o,:,:,:)
-              duRandl(:,:,:,1)=duxrand(1,m,o,:,:,:)
-              duRandl(:,:,:,2)=duyrand(1,m,o,:,:,:)
-              duRandl(:,:,:,3)=duzrand(1,m,o,:,:,:)
-              endif
+                duRandl(:,:,:,1)=duxrand(1,m,o,:,:,:)
+                duRandl(:,:,:,2)=duyrand(1,m,o,:,:,:)
+                duRandl(:,:,:,3)=duzrand(1,m,o,:,:,:)
+              ENDif
             ELSE
               uL=u(m,l-1,o,:,N+1,:,:)
               duRandl(:,:,:,1)=dux(m,l-1,o,:,N+1,:,:)
@@ -837,17 +836,17 @@ CONTAINS
               duRandl(:,:,:,3)=duz(m,l-1,o,:,N+1,:,:)
             ENDIF
             IF (l==NQY) THEN
-              if(nq==nqy) then
-              uR=u(m,1,o,:,1,:,:)
-              duRandr(:,:,:,1)=dux(m,1,o,:,1,:,:)
-              duRandr(:,:,:,2)=duy(m,1,o,:,1,:,:)
-              duRandr(:,:,:,3)=duz(m,1,o,:,1,:,:)
-              else
-              uR=urand(2,m,o,:,:,:)
-              duRandr(:,:,:,1)=duxrand(2,m,o,:,:,:)
-              duRandr(:,:,:,2)=duyrand(2,m,o,:,:,:)
-              duRandr(:,:,:,3)=duzrand(2,m,o,:,:,:)
-              end if
+              IF(nq==nqy) THEN
+                uR=u(m,1,o,:,1,:,:)
+                duRandr(:,:,:,1)=dux(m,1,o,:,1,:,:)
+                duRandr(:,:,:,2)=duy(m,1,o,:,1,:,:)
+                duRandr(:,:,:,3)=duz(m,1,o,:,1,:,:)
+              ELSE
+                uR=urand(2,m,o,:,:,:)
+                duRandr(:,:,:,1)=duxrand(2,m,o,:,:,:)
+                duRandr(:,:,:,2)=duyrand(2,m,o,:,:,:)
+                duRandr(:,:,:,3)=duzrand(2,m,o,:,:,:)
+              END IF
             ELSE
               uR=u(m,l+1,o,:,1,:,:)
               duRandr(:,:,:,1)=dux(m,l+1,o,:,1,:,:)
@@ -906,28 +905,28 @@ CONTAINS
           ENDDO ! m
         ENDDO ! l
       ENDDO ! o
-      if(nq/=NQZ) then
+      IF(nq/=NQZ) THEN
         call comm_rand_bed(u,urand,3,N) 
         call comm_rand_bed(dux,duxrand,3,N) 
         call comm_rand_bed(duy,duyrand,3,N) 
         call comm_rand_bed(duz,duzrand,3,N) 
-      endif
-            !Randbedingungen
+      ENDif
+      !Randbedingungen
       DO o=1,NQZ
         DO l=1,NQY
           DO m=1,NQX
             IF (o==1) THEN
-              if(nq==nqZ) then
-              uL=u(m,l,nq,:,:,N+1,:)
-              duRandl(:,:,:,1)=dux(m,l,nq,:,:,N+1,:)
-              duRandl(:,:,:,2)=duy(m,l,nq,:,:,N+1,:)
-              duRandl(:,:,:,3)=duz(m,l,nq,:,:,N+1,:)
-              else
+              IF(nq==nqZ) THEN
+                uL=u(m,l,nq,:,:,N+1,:)
+                duRandl(:,:,:,1)=dux(m,l,nq,:,:,N+1,:)
+                duRandl(:,:,:,2)=duy(m,l,nq,:,:,N+1,:)
+                duRandl(:,:,:,3)=duz(m,l,nq,:,:,N+1,:)
+              ELSE
                 uL=urand(1,m,l,:,:,:)
-              duRandl(:,:,:,1)=duxrand(1,m,l,:,:,:)
-              duRandl(:,:,:,2)=duyrand(1,m,l,:,:,:)
-              duRandl(:,:,:,3)=duzrand(1,m,l,:,:,:)
-              endif
+                duRandl(:,:,:,1)=duxrand(1,m,l,:,:,:)
+                duRandl(:,:,:,2)=duyrand(1,m,l,:,:,:)
+                duRandl(:,:,:,3)=duzrand(1,m,l,:,:,:)
+              ENDif
             ELSE
               uL=u(m,l,o-1,:,:,N+1,:)
               duRandl(:,:,:,1)=dux(m,l,o-1,:,:,N+1,:)
@@ -935,17 +934,17 @@ CONTAINS
               duRandl(:,:,:,3)=duz(m,l,o-1,:,:,N+1,:)
             ENDIF
             IF (o==NQZ) THEN
-              if(nq==nqZ) then
-              uR=u(m,l,1,:,:,1,:)
-              duRandr(:,:,:,1)=dux(m,l,1,:,:,1,:)
-              duRandr(:,:,:,2)=duy(m,l,1,:,:,1,:)
-              duRandr(:,:,:,3)=duz(m,l,1,:,:,1,:)
-              else
-              uR=urand(2,m,l,:,:,:)
-              duRandr(:,:,:,1)=duxrand(2,m,l,:,:,:)
-              duRandr(:,:,:,2)=duyrand(2,m,l,:,:,:)
-              duRandr(:,:,:,3)=duzrand(2,m,l,:,:,:)
-              end if
+              IF(nq==nqZ) THEN
+                uR=u(m,l,1,:,:,1,:)
+                duRandr(:,:,:,1)=dux(m,l,1,:,:,1,:)
+                duRandr(:,:,:,2)=duy(m,l,1,:,:,1,:)
+                duRandr(:,:,:,3)=duz(m,l,1,:,:,1,:)
+              ELSE
+                uR=urand(2,m,l,:,:,:)
+                duRandr(:,:,:,1)=duxrand(2,m,l,:,:,:)
+                duRandr(:,:,:,2)=duyrand(2,m,l,:,:,:)
+                duRandr(:,:,:,3)=duzrand(2,m,l,:,:,:)
+              END IF
             ELSE
               uR=u(m,l,o+1,:,:,1,:)
               duRandr(:,:,:,1)=dux(m,l,o+1,:,:,1,:)
@@ -1404,36 +1403,36 @@ CONTAINS
     END SELECT
   END SUBROUTINE calculateEulerRandFlux
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- ! SUBROUTINE RungeKutta5explizit(u,nq,n,numvar,dt,Dval,t,whichflux,vis)
- !   IMPLICIT NONE
- !   !u=bekannte Werte
- !   INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq
- !   CHARACTER(len=2),INTENT(IN)                                                      :: whichflux,vis
- !   REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                               :: Dval
- !   REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:numvar) :: u
- !   !local
- !   REAL(KIND=RP),DIMENSION(1:nq,1:nq,1:nq,1:(N+1),1:N+1,1:N+1,1:numvar)    :: g
- !   INTEGER                                                                 :: step
- !   REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
- !   REAL(KIND=RP),INTENT(IN)                                                :: dt,t
- !   g=Rmanu(u,n,nq,Dval,t,whichflux,vis,dt)
- !   a=(/0.0_rp, -567301805773.0_rp/1357537059087.0_rp,&
- !     -2404267990393.0_rp/2016746695238.0_rp, -3550918686646.0_rp/2091501179385.0_rp,&
- !     -1275806237668.0_rp/842570457699.0_rp/)
- !   b=(/0.0_rp, 1432997174477.0_rp/9575080441755.0_rp,&
- !     2526269341429.0_rp/6820363962896.0_rp, 2006345519317.0_rp/3224310063776.0_rp,&
- !     2802321613138.0_rp/2924317926251.0_rp /)
- !   c=(/1432997174477.0_rp/9575080441755.0_rp, 5161836677717.0_rp/13612068292357.0_rp,&
- !     1720146321549.0_rp/2090206949498.0_rp, 3134564353537.0_rp/4481467310338.0_rp,&
- !     2277821191437.0_rp/14882151754819.0_rp /)
+  ! SUBROUTINE RungeKutta5explizit(u,nq,n,numvar,dt,Dval,t,whichflux,vis)
+  !   IMPLICIT NONE
+  !   !u=bekannte Werte
+  !   INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq
+  !   CHARACTER(len=2),INTENT(IN)                                                      :: whichflux,vis
+  !   REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                               :: Dval
+  !   REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:numvar) :: u
+  !   !local
+  !   REAL(KIND=RP),DIMENSION(1:nq,1:nq,1:nq,1:(N+1),1:N+1,1:N+1,1:numvar)    :: g
+  !   INTEGER                                                                 :: step
+  !   REAL(KIND=RP),DIMENSION(5)                                              :: a,b,c
+  !   REAL(KIND=RP),INTENT(IN)                                                :: dt,t
+  !   g=Rmanu(u,n,nq,Dval,t,whichflux,vis,dt)
+  !   a=(/0.0_rp, -567301805773.0_rp/1357537059087.0_rp,&
+  !     -2404267990393.0_rp/2016746695238.0_rp, -3550918686646.0_rp/2091501179385.0_rp,&
+  !     -1275806237668.0_rp/842570457699.0_rp/)
+  !   b=(/0.0_rp, 1432997174477.0_rp/9575080441755.0_rp,&
+  !     2526269341429.0_rp/6820363962896.0_rp, 2006345519317.0_rp/3224310063776.0_rp,&
+  !     2802321613138.0_rp/2924317926251.0_rp /)
+  !   c=(/1432997174477.0_rp/9575080441755.0_rp, 5161836677717.0_rp/13612068292357.0_rp,&
+  !     1720146321549.0_rp/2090206949498.0_rp, 3134564353537.0_rp/4481467310338.0_rp,&
+  !     2277821191437.0_rp/14882151754819.0_rp /)
 
 
 
- !   DO step=1,5
- !     g=a(step)*g+Rmanu(u,n,nq,Dval,t+b(step)*dt,whichflux,vis,b(step)*dt)
- !     u=u+c(step)*dt*g
- !   ENDDO ! step
- ! END SUBROUTINE RungeKutta5explizit
+  !   DO step=1,5
+  !     g=a(step)*g+Rmanu(u,n,nq,Dval,t+b(step)*dt,whichflux,vis,b(step)*dt)
+  !     u=u+c(step)*dt*g
+  !   ENDDO ! step
+  ! END SUBROUTINE RungeKutta5explizit
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE RungeKutta5explizitParallel(u,nq,n,numvar,dt,Dval,t,whichflux,vis,xyzsub)
     IMPLICIT NONE
@@ -1450,8 +1449,8 @@ CONTAINS
     INTEGER                                                                             :: i
     REAL(KIND=RP),DIMENSION(5)                                                          :: a,b,c
 
-     
-    
+
+
     g=Rmanu(u,n,nq,Dval,t,whichflux,vis,dt,xyzsub)
     a=(/0.0_rp, -567301805773.0_rp/1357537059087.0_rp,&
       -2404267990393.0_rp/2016746695238.0_rp, -3550918686646.0_rp/2091501179385.0_rp,&
@@ -1469,8 +1468,8 @@ CONTAINS
 
   END SUBROUTINE RungeKutta5explizitParallel
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine Driver_zeit (u,nq,n,numvar,dt,D,t,tend,whichflux,vis,CFL,xnum,ynum,znum)
-    implicit none
+  SUBROUTINE Driver_zeit (u,nq,n,numvar,dt,D,t,tend,whichflux,vis,CFL,xnum,ynum,znum)
+    IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                         :: numvar,n,nq,xnum,ynum,znum
     CHARACTER(len=2),INTENT(IN)                                                      :: whichflux,vis
     REAL(KIND=RP),INTENT(IN)   ,DIMENSION(1:N+1,1:N+1)                               :: D
@@ -1500,138 +1499,138 @@ CONTAINS
 
     DO while(tend-t>epsilon(dt))
 
-     if(id==0) then 
-      print*,'t'
-      print*,t
-      print*,'dt'
-      print*,dt
-      print*,'sum(energy)'
-      print*,sum(U(:,:,:,:,:,:,5))
-      call lambdaMaxGlobal(u,a,NQ,N)
-      dt=CFL/(3.0_RP*a)*(dx/real(2*N+1))**2
-    ! print*, 'id'
-    ! print*, id
-    ! print*, 'Dt'
-    ! print*, dt
-      call MPI_SEND(dt,1,MPI_DOUBLE_PRECISION,1,23,MPI_COMM_WORLD,ierr)
-    else
-      !!! andern für mehr als 2
-      call MPI_RECV(dtz,1,MPI_DOUBLE_PRECISION,0,23,MPI_COMM_WORLD,stat,ierr)
-      dt=dtz
-    end if
+      IF(id==0) THEN 
+        print*,'t'
+        print*,t
+        print*,'dt'
+        print*,dt
+        print*,'sum(energy)'
+        print*,sum(U(:,:,:,:,:,:,5))
+        call lambdaMaxGlobal(u,a,NQ,N)
+        dt=CFL/(3.0_RP*a)*(dx/real(2*N+1))**2
+        ! print*, 'id'
+        ! print*, id
+        ! print*, 'Dt'
+        ! print*, dt
+        call MPI_SEND(dt,1,MPI_DOUBLE_PRECISION,1,23,MPI_COMM_WORLD,ierr)
+      ELSE
+        !!! andern für mehr als 2
+        call MPI_RECV(dtz,1,MPI_DOUBLE_PRECISION,0,23,MPI_COMM_WORLD,stat,ierr)
+        dt=dtz
+      END IF
 
       IF(t+dt>tend) dt=tend-t
       call RungeKutta5explizitParallel(usub,nq,n,5,dt,D,t,whichflux,vis,xyzsub)
       t=t+dt
       call collect_solution(u,usub,xnum,ynum,znum,n,nq)
     END DO
-   DEALLOCATE(xyzsub,usub,part_map) 
+    DEALLOCATE(xyzsub,usub,part_map) 
     DEALLOCATE(x,w,xmit,xges)
     DEALLOCATE(procs_map)
-    end subroutine
+  END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine collect_solution(u,usub,xnum,ynum,znum,n,nq)
-  implicit none
-  REAL(KIND=RP),INTENT(INout),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5)       :: u
-  REAL(KIND=RP),INTENT(IN),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:5) :: usub
-  INTEGER                                                                        :: m,l,o,i,xnum,ynum,znum
-  INTEGER                                                                        :: n,nq
+  SUBROUTINE collect_solution(u,usub,xnum,ynum,znum,n,nq)
+    IMPLICIT NONE
+    REAL(KIND=RP),INTENT(INout),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5)       :: u
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:5) :: usub
+    INTEGER                                                                        :: m,l,o,i,xnum,ynum,znum
+    INTEGER                                                                        :: n,nq
 
-  !procs_map speichert die Position der processors im gebiet
-  if(id/=0) then
+    !procs_map speichert die Position der processors im gebiet
+    IF(id/=0) THEN
       call MPI_SSEND(usub,NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,0,id,MPI_COMM_WORLD,ierr)
-  endif
-  if(id==0) then
-  i=0
-  do m=0,xnum-1
-    do l=0,ynum-1
-      do o=0,znum-1
-        if(i==0) then 
-         i=i+1
-          continue
-        else
-      call MPI_RECV(u(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)&
-        ,NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,i,i,MPI_COMM_WORLD,stat,ierr)
-         i=i+1
-       end if
-      enddo 
-    enddo 
-  enddo 
-  
-  u(0*NQX+1:(0+1)*NQX,0*NQY+1:(0+1)*NQY,0*NQZ+1:(0+1)*NQZ,:,:,:,:)=usub
-end if
-  
-  end subroutine
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine split_Gebiet(u,usub,xyzsub,xnum,ynum,znum,n,nq)
-  implicit none
-  REAL(KIND=RP),INTENT(IN),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5)       :: u
-  REAL(KIND=RP),INTENT(INout),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:5) :: usub
-  REAL(KIND=RP),INTENT(INout),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:3) :: xyzsub
-  INTEGER                                                                        :: m,l,o,i,xnum,ynum,znum,mmin1,lmin1,omin1
-  INTEGER                                                                        :: mplus1,lplus1,oplus1,n,nq
+    ENDif
+    IF(id==0) THEN
+      i=0
+      DO m=0,xnum-1
+        DO l=0,ynum-1
+          DO o=0,znum-1
+            IF(i==0) THEN 
+              i=i+1
+              continue
+            ELSE
+              call MPI_RECV(u(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)&
+                ,NQX*NQY*NQZ*(N+1)**3*5,MPI_DOUBLE_PRECISION,i,i,MPI_COMM_WORLD,stat,ierr)
+              i=i+1
+            END IF
+          ENDdo 
+        ENDdo 
+      ENDdo 
 
-  !procs_map speichert die Position der processors im gebiet
-  i=0
-  do m=0,xnum-1
-    do l=0,ynum-1
-      do o=0,znum-1
-        procs_map(m,l,o)=i
-       if(id==i) then
-       usub=u(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)
-       xyzsub=xyz(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)
-       endif 
-        i=i+1
-      enddo 
-    enddo 
-  enddo 
-  
-  i=0
-  do m=0,xnum-1
-    do l=0,ynum-1
-      do o=0,znum-1 
-        if(m==0) then
-          mmin1=xnum-1
-        else
-          mmin1=m-1 
-        endif
-        if(l==0) then
-          lmin1=ynum-1
-        else
-          lmin1=l-1 
-        endif
-        if(o==0) then
-          omin1=znum-1
-        else
-          omin1=o-1 
-        endif
-        if(m==xnum-1) then
-          mplus1=0
-        else
-          mplus1=m+1 
-        endif
-        if(l==ynum-1) then
-          lplus1=0
-        else
-          lplus1=l+1 
-        endif
-        if(o==znum-1) then
-          oplus1=0
-        else
-          oplus1=o+1 
-        endif
+      u(0*NQX+1:(0+1)*NQX,0*NQY+1:(0+1)*NQY,0*NQZ+1:(0+1)*NQZ,:,:,:,:)=usub
+    END IF
+
+  END SUBROUTINE
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE split_Gebiet(u,usub,xyzsub,xnum,ynum,znum,n,nq)
+    IMPLICIT NONE
+    REAL(KIND=RP),INTENT(IN),DIMENSION(1:nq,1:nq,1:nq,1:N+1,1:N+1,1:N+1,1:5)       :: u
+    REAL(KIND=RP),INTENT(INout),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:5) :: usub
+    REAL(KIND=RP),INTENT(INout),DIMENSION(1:nqx,1:nqy,1:nqZ,1:N+1,1:N+1,1:N+1,1:3) :: xyzsub
+    INTEGER                                                                        :: m,l,o,i,xnum,ynum,znum,mmin1,lmin1,omin1
+    INTEGER                                                                        :: mplus1,lplus1,oplus1,n,nq
+
+    !procs_map speichert die Position der processors im gebiet
+    i=0
+    DO m=0,xnum-1
+      DO l=0,ynum-1
+        DO o=0,znum-1
+          procs_map(m,l,o)=i
+          IF(id==i) THEN
+            usub=u(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)
+            xyzsub=xyz(m*NQX+1:(m+1)*NQX,l*NQY+1:(l+1)*NQY,o*NQZ+1:(o+1)*NQZ,:,:,:,:)
+          ENDif 
+          i=i+1
+        ENDdo 
+      ENDdo 
+    ENDdo 
+
+    i=0
+    DO m=0,xnum-1
+      DO l=0,ynum-1
+        DO o=0,znum-1 
+          IF(m==0) THEN
+            mmin1=xnum-1
+          ELSE
+            mmin1=m-1 
+          ENDif
+          IF(l==0) THEN
+            lmin1=ynum-1
+          ELSE
+            lmin1=l-1 
+          ENDif
+          IF(o==0) THEN
+            omin1=znum-1
+          ELSE
+            omin1=o-1 
+          ENDif
+          IF(m==xnum-1) THEN
+            mplus1=0
+          ELSE
+            mplus1=m+1 
+          ENDif
+          IF(l==ynum-1) THEN
+            lplus1=0
+          ELSE
+            lplus1=l+1 
+          ENDif
+          IF(o==znum-1) THEN
+            oplus1=0
+          ELSE
+            oplus1=o+1 
+          ENDif
           part_map(i,0)=procs_map(mmin1,l,o)
           part_map(i,1)=procs_map(mplus1,l,o)
           part_map(i,2)=procs_map(m,lmin1,o)
           part_map(i,3)=procs_map(m,lplus1,o)
           part_map(i,4)=procs_map(m,l,omin1)
           part_map(i,5)=procs_map(m,l,oplus1)
-          
-        i=i+1
-      enddo 
-    enddo 
-  enddo 
-  end subroutine
+
+          i=i+1
+        ENDdo 
+      ENDdo 
+    ENDdo 
+  END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE computeError (u,usolution,NQ,N,result)
     IMPLICIT NONE
@@ -1660,15 +1659,15 @@ subroutine split_Gebiet(u,usub,xyzsub,xnum,ynum,znum,n,nq)
 
   END SUBROUTINE computeEOC
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine beginne_para ()
-    implicit none
-    
+  SUBROUTINE beginne_para ()
+    IMPLICIT NONE
+
     call MPI_Init(ierr) !starting MPI
-    end subroutine
+  END SUBROUTINE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine ende_para ()
-    implicit none
-    
+  SUBROUTINE ENDe_para ()
+    IMPLICIT NONE
+
     call MPI_Finalize(ierr)
-    end subroutine
+  END SUBROUTINE
 END MODULE Zeitintegration
