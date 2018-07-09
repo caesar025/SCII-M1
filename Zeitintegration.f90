@@ -94,11 +94,11 @@ CONTAINS
 
 
         !we assume nq**3 is divisible by num_procs
-        if(mod(nq**3,num_procs)/=0) then
-            call MPI_Finalize(ierr)
-            print*,'Number of elements(',nq**3,') is not divided by ',num_procs
-            stop
-        end if
+        !if(mod(nq**3,num_procs)/=0) then
+         !   call MPI_Finalize(ierr)
+          !  print*,'Number of elements(',nq**3,') is not divided by ',num_procs
+           ! stop
+        !end if
         if(id.ne.0.and..not.allocated(xyz)) ALLOCATE(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:3))
 				if(t==0) call MPI_BCAST(xyz,nq**3*(N+1)**3*3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
         per_proc=real(nq/num_procs,kind=rp)
@@ -295,6 +295,14 @@ CONTAINS
         else
         solution(:,:,1:floor(per_proc),:,:,:,:)=solutionsub
         endif
+if(id==0) then
+            do i=1,num_procs-2
+                call MPI_RECV(solution(:,:,i*floor(per_proc)+1:(i+1)*floor(per_proc),:,:,:,:),&
+                    nq*nq*floor(per_proc)*(n+1)**3*5,MPI_DOUBLE_PRECISIOn,i,11*num_procs,MPI_COMM_WORLD,stat,ierr)
+            enddo
+            call MPI_RECV(solution(:,:,(num_procs-1)*floor(per_proc)+1:nq,:,:,:,:),nq*nq*(nq-(num_procs-1)&
+                *floor(per_proc))*(n+1)**3*5,MPI_DOUBLE_PRECISIOn,num_procs-1,11*num_procs,MPI_COMM_WORLD,stat,ierr)
+        endif
         if (allocated(usub)) deallocate(usub)
         if (allocated(uBoundL)) deallocate(uBoundL)
         if (allocated(uBoundR)) deallocate(uBoundR)
@@ -316,14 +324,7 @@ CONTAINS
         if (allocated(res)) deallocate(res)
         if (allocated(solutionsub)) deallocate(solutionsub)
         
-        if(id==0) then
-            do i=1,num_procs-2
-                call MPI_RECV(solution(:,:,i*floor(per_proc)+1:(i+1)*floor(per_proc),:,:,:,:),&
-                    nq*nq*floor(per_proc)*(n+1)**3*5,MPI_DOUBLE_PRECISIOn,i,11*num_procs,MPI_COMM_WORLD,stat,ierr)
-            enddo
-            call MPI_RECV(solution(:,:,(num_procs)*floor(per_proc)+1:nq,:,:,:,:),nq*nq*(nq-(num_procs-1)&
-                *floor(per_proc))*(n+1)**3*5,MPI_DOUBLE_PRECISIOn,num_procs-1,11*num_procs,MPI_COMM_WORLD,stat,ierr)
-        endif
+        
     !        call MPI_Finalize(ierr)
     END FUNCTION Rmanu
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -639,13 +640,17 @@ CONTAINS
                         duy(m,l,o,:,N+1,:,:)=+(u(m,l,o,:,N+1,:,:)+u(m,l+1,o,:,1,:,:))*1.0_RP/2.0_RP+duy(m,l,o,:,N+1,:,:)
                     END IF
                     !z-direction
-                    IF(o==1) THEN
+                    IF(o==1.and. o/=num_elem) THEN
                         duz(m,l,o,:,:,1,:)=-(uBoundL(m,l,1,:,:,1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,1,:)
                         duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,N+1,:)
-                    ELSEif(o==num_elem) THEN
+                    ELSEif(o==num_elem.and.o/=1) THEN
                         duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,1,:)
                         duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+uBoundR(m,l,1,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,N+1,:)
-                    ELSE
+                    ELSEif(o==1.and.o==num_elem) then
+			duz(m,l,o,:,:,1,:)=-(uBoundL(m,l,1,:,:,1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,1,:)
+duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+uBoundR(m,l,1,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,N+1,:)
+		    else
+
                         duz(m,l,o,:,:,1,:)=-(u(m,l,o-1,:,:,N+1,:)+u(m,l,o,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,1,:)
                         duz(m,l,o,:,:,N+1,:)=(u(m,l,o,:,:,N+1,:)+u(m,l,o+1,:,:,1,:))*1.0_RP/2.0_RP+duz(m,l,o,:,:,N+1,:)
                     END IF

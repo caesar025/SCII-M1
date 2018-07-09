@@ -2,8 +2,8 @@ program Driver_Manufactured
     use Zeitintegration
     use mpi
     implicit none
-    REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.3_RP,CFL=0.1_RP,dt,a
-    INTEGER,parameter                                  :: n=3,anz=2
+    REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.1_RP,CFL=0.1_RP,dt,a
+    INTEGER,parameter                                  :: n=2,anz=2
     REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
     REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
     REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
@@ -12,7 +12,7 @@ program Driver_Manufactured
     CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
     REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
     INTEGER, DIMENSION(1:anz)                          :: nq
-    INTEGER                                            :: k,i,start=6,m=0,l,o,li=1,j=0,ierralloc
+    INTEGER                                            :: k,i,start=3,m=0,l,o,li=1,j=0,ierralloc
     call MPI_Init(ierr) !starting MPI
     call MPI_COMM_SIZE (MPI_COMM_WORLD, num_procs, ierr) !getting the number of processors
     call MPI_COMM_RANK(MPI_COMM_WORLD,id,ierr)
@@ -39,7 +39,7 @@ program Driver_Manufactured
                 print*,'sum(energy)'
                 print*,sum(U(:,:,:,:,:,:,5))
                 call lambdaMaxGlobal(u,a,NQ(k),N)
-                dt=CFL/(3.0_RP*a)*(dx/real(2*N+1))**2
+                dt=CFL/(9.0_RP*a)*(dx/real(2*N+1,kind=rp))**2
                 IF(t+dt>tend) dt=tend-t
             else
                 if(.not.allocated(u)) allocate(u(1:nq(k),1:nq(k),1:nq(k),1:n+1,1:n+1,1:n+1,1:5))
@@ -53,7 +53,7 @@ program Driver_Manufactured
             !print*,u(1,1,1,1,:,:,1)
             t=t+dt
 
-            IF (MODULO(j,10).EQ.0 .and. nq(k)==4.and.id==0) THEN
+            IF (MODULO(j,10).EQ.0 .and. nq(k)==6.and.id==0) THEN
                 !!
                 !  Print solution every 10 timesteps for movies
                 !!
@@ -91,9 +91,10 @@ program Driver_Manufactured
 
         END DO
         ! Berechne Fehler und Loesung
+if (id==0) then
         call computeSolution(usolution,NQ(k),N,t)
         call computeError(u,usolution,NQ(k),N,errors(:,k))
-        if (id==0) then
+        
             print*, 'FEHLER'
             print*,errors(1,:)
             print*,errors(2,:)
@@ -107,6 +108,7 @@ program Driver_Manufactured
             deallocate (u)
         endif
         t=0.0_RP
+if (allocated(xyz)) deallocate(xyz)
 
     END DO
 
@@ -130,6 +132,7 @@ program Driver_Manufactured
     !   call ExportToTecplot_2D(xplot,yplot,uplot,N,64,15,'rho')
 
     !   close(15)
+if (id==0) then
     call computeEOC(errors,n,nq,anz,EOC)
     print*, "EOC"
     print*, EOC(1,:)
@@ -137,5 +140,6 @@ program Driver_Manufactured
     print*, EOC(3,:)
     print*, EOC(4,:)
     print*, EOC(5,:)
+endif
     call MPI_Finalize(ierr)
 end program Driver_Manufactured
