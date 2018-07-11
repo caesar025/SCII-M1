@@ -1,7 +1,7 @@
 MODULE Zeitintegration
   USE DGtoolbox
   REAL(KIND=RP),DIMENSION(:),ALLOCATABLE             :: x,w,xmit,xges
-  REAL(KIND=RP)                                      :: gk=9.812_RP,dx,gamma=1.4_RP,mu=0.001_RP,Pr=0.72_RP,Rkonst=287.058_RP
+  REAL(KIND=RP)                                      :: gk=9.812_RP,dx,gamma=1.4_RP,mu=0.000625_RP,Pr=0.72_RP,Rkonst=287.058_RP
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),ALLOCATABLE :: xyz
 
 CONTAINS
@@ -21,12 +21,11 @@ CONTAINS
     ALLOCATE(xyz(1:nq,1:nq,1:nq,1:n+1,1:n+1,1:n+1,1:3))
     CALL LegendreGaussLobattoNodesAndWeights(N,x,w)
     Dval= baryzdiffmatrix(x,n)
-    dx=2.0_RP/REAL(nq,KIND=RP)
+    dx=2.0_RP*pi/REAL(nq,KIND=RP)
     !CALL linspace(dx/2.0_RP,1.0_RP-dx/2.0_RP,NQ,xmit)
     !DO i=1,NQ
     !  xges((i-1)*(N+1)+1:i*(N+1))=xmit(i)+dx/2.0_RP*x
     !ENDDO ! i
-
     CALL LegendreGaussLobattoNodesAndWeights(N,xi,w)
     !! Bestimme GL punkte in jeder Zelle
     DO k=0,nq-1
@@ -853,11 +852,18 @@ CONTAINS
     IMPLICIT NONE
     INTEGER      ,INTENT(IN)                                                    :: NQ,N
     REAL(KIND=RP),INTENT(INOUT),DIMENSION(1:NQ,1:NQ,1:NQ,1:N+1,1:N+1,1:N+1,1:5) :: u
-   u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
-   u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
-   u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
-   u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
-   u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
+   u(:,:,:,:,:,:,1)=1.0_RP
+   u(:,:,:,:,:,:,2)=sin(pi*xyz(:,:,:,:,:,:,1)+pi)*cos(pi*xyz(:,:,:,:,:,:,2)+pi)*cos(pi*xyz(:,:,:,:,:,:,3)+pi)
+   u(:,:,:,:,:,:,3)=-cos(pi*xyz(:,:,:,:,:,:,1)+pi)*sin(pi*xyz(:,:,:,:,:,:,2)+pi)*cos(pi*xyz(:,:,:,:,:,:,3)+pi)
+   u(:,:,:,:,:,:,4)=0.0_RP
+   u(:,:,:,:,:,:,5)=100/gamma+1.0_RP/16.0_RP*(cos(2.0_RP*(pi*xyz(:,:,:,:,:,:,1)+pi))*cos(2.0_RP*(pi*xyz(:,:,:,:,:,:,3)+pi))&
+        +2.0_RP*cos(2.0_RP*(pi*xyz(:,:,:,:,:,:,2)+pi))+2.0_RP*cos(2.0_RP*(pi*xyz(:,:,:,:,:,:,1)+pi))+&
+        cos(2.0_RP*(pi*xyz(:,:,:,:,:,:,2)+pi))*cos(2.0_RP*(pi*xyz(:,:,:,:,:,:,3)+pi)))
+   !u(:,:,:,:,:,:,1)=2.0_RP+SIN(pi*(xyz(:,:,:,:,:,:,1)+xyz(:,:,:,:,:,:,2)+xyz(:,:,:,:,:,:,3)))/10.0_RP
+   !u(:,:,:,:,:,:,2)=u(:,:,:,:,:,:,1)
+   !u(:,:,:,:,:,:,3)=u(:,:,:,:,:,:,1)
+   !u(:,:,:,:,:,:,4)=u(:,:,:,:,:,:,1)
+   !u(:,:,:,:,:,:,5)=u(:,:,:,:,:,:,1)*u(:,:,:,:,:,:,1)
    ! u(:,:,:,:,:,:,1)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)
    ! u(:,:,:,:,:,:,2)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)
    ! u(:,:,:,:,:,:,3)=xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)*xyz(:,:,:,:,:,:,1)

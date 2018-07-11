@@ -1,14 +1,14 @@
 program Driver_Manufactured
   use Zeitintegration
   implicit none
-  REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.3_RP,CFL=0.1_RP,dt,a
+  REAL(KIND=RP)                                      :: t=0.0_rp,tend=0.3_RP,CFL=0.1_RP,dt,a,DFL=0.1_RP,avis,dtvis
   INTEGER,parameter                                  :: n=3,anz=2
   REAL(KIND=RP),DIMENSION(:,:,:,:,:,:,:),allocatable :: u, usolution
   REAL(KIND=RP),DIMENSION(:,:,:,:),allocatable       :: uplot,xplot,yplot,zplot
   REAL(KIND=RP),DIMENSION(1:n+1,1:n+1)               :: D
   CHARACTER(len=2)                                   :: whichflux='PI',vis='VI' !whichflux: if pirozzoli or standard fluxes; vis: viskos or just advective
   CHARACTER(Len=3)                                    ::numChar
-   CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
+  CHARACTER(LEN=17) :: fName  = "Movies/UXXX.tec"
   REAL(KIND=RP),DIMENSION(1:5,1:anz)                 :: errors,EOC
   INTEGER, DIMENSION(1:anz)                          :: nq
   INTEGER                                            :: k,i,start=6,m=0,l,o,li=1,j=0
@@ -21,6 +21,10 @@ program Driver_Manufactured
     call Initialcondition(u,NQ(k),N)
     call lambdaMaxGlobal(u,a,NQ(k),N)
     dt=CFL/(3.0_RP*a)*(dx/real(2*N+1,KIND=RP))**2
+    avis=maxval(mu*gamma*Pr/u(:,:,:,:,:,:,1))
+    dtvis=DFL/(3.0_RP*avis)*(dx/real(2*N+1,kind=rp))**2
+    dt=min(dt,dtvis)
+    dt=1e-6
     !-ffpe-trap=denormal,invalid,zero,overflow,underflow
     DO while(tend-t>epsilon(dt))
       print*,'t'
@@ -30,7 +34,11 @@ program Driver_Manufactured
       print*,'sum(energy)'
       print*,sum(U(:,:,:,:,:,:,5))
       call lambdaMaxGlobal(u,a,NQ(k),N)
-      dt=CFL/(3.0_RP*a)*(dx/real(2*N+1))**2
+      dt=CFL/(9.0_RP*a)*(dx/real(2*N+1,kind=rp))
+      avis=maxval(abs(mu*gamma*Pr/u(:,:,:,:,:,:,1)))
+      dtvis=DFL/(9.0_RP*avis)*(dx/real(2*N+1,kind=rp))**2
+      dt=min(dt,dtvis)
+      dt=1e-6
       IF(t+dt>tend) dt=tend-t
       call RungeKutta5explizit(u,nq(k),n,5,dt,D,t,whichflux,vis)
       ! Ueberpruefen ob Dichte/Druck negativ werden
@@ -54,7 +62,9 @@ program Driver_Manufactured
             enddo
         enddo
         enddo
-
+        forall (l=1:nq(k)**3) xplot(l,:,:,:)=pi*xplot(l,:,:,:)+pi
+        forall (l=1:nq(k)**3) yplot(l,:,:,:)=pi*xplot(l,:,:,:)+pi
+        forall (l=1:nq(k)**3) zplot(l,:,:,:)=pi*xplot(l,:,:,:)+pi
 
             m = m + 1
             WRITE(numChar,'(i3)')m
